@@ -1,58 +1,97 @@
-ROOT_DIR =
+# build directory \
+naming rule BUILD_<modulename>
+BUILD_BOOT = build/boot
+BUILD_DEV  = build/device
+BUILD_KER  = build/kernel
+BUILD_LIB  = build/lib
 
-# 
-# Bootloader 源码与生成文件的目录
-BOOT_DIR_SRC =  $(ROOT_DIR)source/boot#loader、start 源文件
-BOOT_DIR_INC =  $(ROOT_DIR)source/boot/include#Boot头文件
-BUILD_DIR_BOOT = $(ROOT_DIR)build/boot#可执行文件的生成目录
+# source directory \
+naming rule SRC_<modulename>
+SRC_BOOT = source/boot
+SRC_KER  = source/kernel
+SRC_LIB  = source/lib
+SRC_DEV  = device
 
-# device 源文件与生成目录
-DEV_DIR = $(ROOT_DIR)device
-BUILD_DIR_DEV = $(ROOT_DIR)build/device
+# library directory \
+naming rule LIB_<modulename>
+LIB_ROOT = source/lib
+LIB_KER  = source/lib/kernel
 
-# 映像文件目录
-IMG_DIR = $(ROOT_DIR)image
+# image directory
+IMG_DIR = image
 
-# Kernel 源码与生成文件的目录
-KER_DIR = $(ROOT_DIR)source/kernel# main 源文件
-BUILD_DIR_KER = $(ROOT_DIR)build/kernel# main 生成目录
 
-# 库文件
-LIB_KER = $(ROOT_DIR)source/lib/kernel# 库文件源代码目录
-LIB_ROOT = $(ROOT_DIR)source/lib# 未归档库文件
-BUILD_DIR_LIB = $(ROOT_DIR)build/lib/kernel# kernel库文件生成
+# Compiler Options
+ENTRY_POINT = 0xc0001500
+AS = nasm
+CC = gcc
+LD = ld
+LIB = -I $(LIB_KER) -I $(LIB_ROOT) -I $(SRC_DEV) -I $(SRC_BOOT) -I $(SRC_KER)
+ASFLAGS = -f elf
+ASBINLIB = -I source/boot/include/
+CFLAGS  = -Wall $(LIB) -c -m32 -fno-builtin -fno-stack-protector -W -Wstrict-prototypes -Wmissing-prototypes 
+OBJS = $(BUILD_KER)/main.o $(BUILD_KER)/init.o $(BUILD_KER)/interrupt.o \
+      $(BUILD_DEV)/timer.o $(BUILD_KER)/kernel.o $(BUILD_LIB)/print.o \
+      $(BUILD_KER)/debug.o 
+LDFLAGS = -m elf_i386 -Ttext $(ENTRY_POINT) -e main -Map $(BUILD_KER)/kernel.map
 
-all: source/boot/start.S source/boot/loader.S 
-	@nasm -I$(BOOT_DIR_INC) -o $(BUILD_DIR_BOOT)/start.bin $(BOOT_DIR_SRC)/start.S
-	@nasm -I$(BOOT_DIR_INC) -o $(BUILD_DIR_BOOT)/load.bin $(BOOT_DIR_SRC)/loader.S
-	@nasm -f elf -o $(BUILD_DIR_LIB)/print.o $(LIB_KER)/print.S
-	@nasm -f elf -o $(BUILD_DIR_KER)/kernel.o $(KER_DIR)/kernel.S
-	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_KER)/ -I$(LIB_ROOT)/ -c -o $(BUILD_DIR_KER)/main.o $(KER_DIR)/main.c 
-	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -c -o $(BUILD_DIR_DEV)/timer.o $(DEV_DIR)/timer.c 
-	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -c -fno-builtin -o $(BUILD_DIR_KER)/main.o $(KER_DIR)/main.c
-	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -I$(DEV_DIR)/ -c -fno-builtin -o $(BUILD_DIR_KER)/init.o $(KER_DIR)/init.c
-	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -I$(LIB_ROOT)/ -c -fno-builtin -o $(BUILD_DIR_KER)/interrupt.o $(KER_DIR)/interrupt.c
-#   ld -melf_i386  -Ttext 0xc0001500 -e main -o ./out/kernel/kernel.bin out/kernel/main.o out/kernel/print.o
-#	这是一个Linux下的ld链接器命令，用于将两个目标文件（main.o和print.o）链接成一个可执行文件kernel.bin。
-#   以下是参数的详细解释：
-#   -melf_i386：指定输出的目标文件格式为ELF i386。
-#   -Ttext 0xc0001500：指定链接后可执行文件的起始地址是0xc0001500。
-#   -e main：告诉链接器程序的入口点是main函数。
-#   -o ./out/kernel/kernel.bin：指定输出文件名和路径。
-#   out/kernel/main.o out/kernel/print.o：要链接的目标文件列表。
-	ld -melf_i386   -Ttext 0xc0001500 -e main -o $(BUILD_DIR_KER)/kernel.bin $(BUILD_DIR_KER)/main.o $(BUILD_DIR_LIB)/print.o \
-	$(BUILD_DIR_KER)/init.o $(BUILD_DIR_KER)/interrupt.o $(BUILD_DIR_KER)/kernel.o $(BUILD_DIR_DEV)/timer.o
+##############     MBR代码编译     ############### 
+$(BUILD_BOOT)/mbr.bin: $(SRC_BOOT)/mbr.S 
+	$(AS) $(ASBINLIB) $< -o $@
 
-clean:
-	rm -r $(BUILD_DIR_BOOT)/* $(BUILD_DIR_KER)/* $(BUILD_DIR_LIB)/* $(BUILD_DIR_DEV)/*
+##############     bootloader代码编译     ###############
+$(BUILD_BOOT)/loader.bin: $(SRC_BOOT)/loader.S 
+	$(AS) $(ASBINLIB) $< -o $@
 
-run:
+
+#################### c代码编译 ##########################
+$(BUILD_KER)/main.o: $(SRC_KER)/main.c $(SRC_KER)/init.h \
+				   $(LIB_ROOT)/stdint.h $(LIB_KER)/print.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_KER)/init.o: $(SRC_KER)/init.c $(SRC_KER)/init.h $(LIB_KER)/print.h \
+        $(LIB_ROOT)/stdint.h $(SRC_KER)/interrupt.h $(SRC_DEV)/timer.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_KER)/interrupt.o: $(SRC_KER)/interrupt.c $(SRC_KER)/interrupt.h \
+        $(LIB_ROOT)/stdint.h $(SRC_KER)/global.h $(LIB_KER)/io.h $(LIB_KER)/print.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DEV)/timer.o: $(SRC_DEV)/timer.c $(SRC_DEV)/timer.h $(LIB_ROOT)/stdint.h\
+         $(LIB_KER)/io.h $(LIB_KER)/print.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_KER)/debug.o: $(SRC_KER)/debug.c $(SRC_KER)/debug.h \
+        $(LIB_KER)/print.h $(LIB_ROOT)/stdint.h $(SRC_KER)/interrupt.h
+	$(CC) $(CFLAGS) $< -o $@
+
+
+##############    汇编代码编译    ###############
+$(BUILD_KER)/kernel.o: $(SRC_KER)/kernel.S
+	$(AS) $(ASFLAGS) $< -o $@
+$(BUILD_LIB)/print.o: $(LIB_KER)/print.S
+	$(AS) $(ASFLAGS) $< -o $@
+
+##############    链接所有目标文件    #############
+$(BUILD_KER)/kernel.bin: $(OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+
+.PHONY:build run clean
+
+build:$(BUILD_KER)/kernel.bin $(BUILD_BOOT)/loader.bin $(BUILD_BOOT)/mbr.bin
+
+run: 
 	rm -rf $(IMG_DIR)/disk.img
 	rm -rf $(IMG_DIR)/disk.img.lock
 	bximage -hd=10M -mode="create" -q $(IMG_DIR)/disk.img
-
-	dd if=./$(BUILD_DIR_BOOT)/start.bin of=./$(IMG_DIR)/disk.img bs=512 count=1 conv=notrunc
-	dd if=./$(BUILD_DIR_BOOT)/load.bin of=./$(IMG_DIR)/disk.img bs=512 count=4 seek=2 conv=notrunc
-	dd if=./$(BUILD_DIR_KER)/kernel.bin of=./$(IMG_DIR)/disk.img bs=512 count=200 seek=9 conv=notrunc
-	
+	dd if=./$(BUILD_BOOT)/mbr.bin of=./$(IMG_DIR)/disk.img bs=512 count=1 conv=notrunc
+	dd if=./$(BUILD_BOOT)/loader.bin of=./$(IMG_DIR)/disk.img bs=512 count=4 seek=2 conv=notrunc
+	dd if=./$(BUILD_KER)/kernel.bin of=./$(IMG_DIR)/disk.img bs=512 count=200 seek=9 conv=notrunc
 	bochs/bin/bochs -f bochs/bin/bochsrc.disk 
+
+clean:
+	-rm -r $(BUILD_BOOT)/* $(BUILD_DEV)/* $(BUILD_KER)/* $(BUILD_LIB)/*
+
+all:build run
+

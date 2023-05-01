@@ -12,9 +12,8 @@
 #define IDT_DESC_CNT 0x21 // 目前总共支持的中断数
 
 #define EFLAGS_IF 0x00000200 // eflags寄存器的if位为1
-#define GET_EFLAGS(EFLAG_VAR) asm volatile("pushl;popl %0" \
+#define GET_EFLAGS(EFLAG_VAR) asm volatile("pushfl; popl %0" \
                                            : "=g"(EFLAG_VAR))
-
 /*中断门描述符结构体*/
 struct gate_desc {
     uint16_t func_offset_low_word;
