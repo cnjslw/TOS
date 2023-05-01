@@ -32,7 +32,7 @@ ASBINLIB = -I source/boot/include/
 CFLAGS  = -Wall $(LIB) -c -m32 -fno-builtin -fno-stack-protector -W -Wstrict-prototypes -Wmissing-prototypes 
 OBJS = $(BUILD_KER)/main.o $(BUILD_KER)/init.o $(BUILD_KER)/interrupt.o \
       $(BUILD_DEV)/timer.o $(BUILD_KER)/kernel.o $(BUILD_LIB)/print.o \
-      $(BUILD_KER)/debug.o 
+      $(BUILD_KER)/debug.o $(BUILD_LIB)/string.o
 LDFLAGS = -m elf_i386 -Ttext $(ENTRY_POINT) -e main -Map $(BUILD_KER)/kernel.map
 
 ##############     MBR代码编译     ############### 
@@ -63,6 +63,10 @@ $(BUILD_DEV)/timer.o: $(SRC_DEV)/timer.c $(SRC_DEV)/timer.h $(LIB_ROOT)/stdint.h
 
 $(BUILD_KER)/debug.o: $(SRC_KER)/debug.c $(SRC_KER)/debug.h \
         $(LIB_KER)/print.h $(LIB_ROOT)/stdint.h $(SRC_KER)/interrupt.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_LIB)/string.o: $(SRC_LIB)/string.c $(SRC_LIB)/string.h \
+		$(LIB_ROOT)/stdint.h $(SRC_KER)/debug.h $(SRC_KER)/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
 
