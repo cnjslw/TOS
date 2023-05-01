@@ -9,7 +9,7 @@
 
    DATA_STACK_DESC:  dd    0x0000FFFF
 		     dd    DESC_DATA_HIGH4
- 
+
    VIDEO_DESC: dd    0x80000007	       ; limit=(0xbffff-0xb8000)/4k=0x7
 	       dd    DESC_VIDEO_HIGH4  ; 此时dpl为0
 
@@ -179,39 +179,16 @@ p_mode_start:
    ;在开启分页后,用gdt新的地址重新加载
    lgdt [gdt_ptr]             ; 重新加载
 
-   mov byte [gs:160], 'V'     
-   mov byte [gs:162], 'i'     
-   mov byte [gs:164], 'r'     
-   mov byte [gs:166], 't'     
-   mov byte [gs:168], 'u'     
-   mov byte [gs:170], 'a'     
-   mov byte [gs:172], 'l'     
-   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;  此时不刷新流水线也没问题  ;;;;;;;;;;;;;;;;;;;;;;;;
 ;由于一直处在32位下,原则上不需要强制刷新,经过实际测试没有以下这两句也没问题.
 ;但以防万一，还是加上啦，免得将来出来莫句奇妙的问题.
    jmp SELECTOR_CODE:enter_kernel	  ;强制刷新流水线,更新gdt
 enter_kernel:    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-   mov byte [gs:320], 'k'     
-   mov byte [gs:322], 'e'     
-   mov byte [gs:324], 'r'     
-   mov byte [gs:326], 'n'     
-   mov byte [gs:328], 'e'     
-   mov byte [gs:330], 'l'     
-
-   mov byte [gs:480], 'w'     
-   mov byte [gs:482], 'h'     
-   mov byte [gs:484], 'i'     
-   mov byte [gs:486], 'l'     
-   mov byte [gs:488], 'e'     
-   mov byte [gs:490], '('     
-   mov byte [gs:492], '1'     
-   mov byte [gs:494], ')'     
-   mov byte [gs:496], ';'     
    call kernel_init
    mov esp, 0xc009f000
    jmp KERNEL_ENTRY_POINT                 ; 用地址0x1500访问测试，结果ok
+
 
 ;-----------------   将kernel.bin中的segment拷贝到编译的地址   -----------
 kernel_init:
