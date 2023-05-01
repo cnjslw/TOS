@@ -23,15 +23,15 @@ LIB_ROOT = $(ROOT_DIR)source/lib# 未归档库文件
 BUILD_DIR_LIB = $(ROOT_DIR)build/lib/kernel# kernel库文件生成
 
 all: source/boot/start.S source/boot/loader.S 
-	nasm -I$(BOOT_DIR_INC) -o $(BUILD_DIR_BOOT)/start.bin $(BOOT_DIR_SRC)/start.S
-	nasm -I$(BOOT_DIR_INC) -o $(BUILD_DIR_BOOT)/load.bin $(BOOT_DIR_SRC)/loader.S
-	nasm -f elf -o $(BUILD_DIR_LIB)/print.o $(LIB_KER)/print.S
-	nasm -f elf -o $(BUILD_DIR_KER)/kernel.o $(KER_DIR)/kernel.S
-	gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_KER)/ -I$(LIB_ROOT)/ -c -o $(BUILD_DIR_KER)/main.o $(KER_DIR)/main.c 
-	gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -c -o $(BUILD_DIR_DEV)/timer.o $(DEV_DIR)/timer.c 
-	gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -c -fno-builtin -o $(BUILD_DIR_KER)/main.o $(KER_DIR)/main.c
-	gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -I$(DEV_DIR)/ -c -fno-builtin -o $(BUILD_DIR_KER)/init.o $(KER_DIR)/init.c
-	gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -I$(LIB_ROOT)/ -c -fno-builtin -o $(BUILD_DIR_KER)/interrupt.o $(KER_DIR)/interrupt.c
+	@nasm -I$(BOOT_DIR_INC) -o $(BUILD_DIR_BOOT)/start.bin $(BOOT_DIR_SRC)/start.S
+	@nasm -I$(BOOT_DIR_INC) -o $(BUILD_DIR_BOOT)/load.bin $(BOOT_DIR_SRC)/loader.S
+	@nasm -f elf -o $(BUILD_DIR_LIB)/print.o $(LIB_KER)/print.S
+	@nasm -f elf -o $(BUILD_DIR_KER)/kernel.o $(KER_DIR)/kernel.S
+	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_KER)/ -I$(LIB_ROOT)/ -c -o $(BUILD_DIR_KER)/main.o $(KER_DIR)/main.c 
+	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -c -o $(BUILD_DIR_DEV)/timer.o $(DEV_DIR)/timer.c 
+	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -c -fno-builtin -o $(BUILD_DIR_KER)/main.o $(KER_DIR)/main.c
+	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -I$(DEV_DIR)/ -c -fno-builtin -o $(BUILD_DIR_KER)/init.o $(KER_DIR)/init.c
+	@gcc -m32 -nostdinc -fno-stack-protector -I$(LIB_ROOT)/ -I$(LIB_KER)/ -I$(KER_DIR)/ -I$(LIB_ROOT)/ -c -fno-builtin -o $(BUILD_DIR_KER)/interrupt.o $(KER_DIR)/interrupt.c
 #   ld -melf_i386  -Ttext 0xc0001500 -e main -o ./out/kernel/kernel.bin out/kernel/main.o out/kernel/print.o
 #	这是一个Linux下的ld链接器命令，用于将两个目标文件（main.o和print.o）链接成一个可执行文件kernel.bin。
 #   以下是参数的详细解释：
