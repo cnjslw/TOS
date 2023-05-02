@@ -11,6 +11,7 @@ SRC_BOOT = source/boot
 SRC_KER  = source/kernel
 SRC_LIB  = source/lib
 SRC_DEV  = device
+SRC_LIB_KER  = source/lib/kernel
 
 # library directory \
 naming rule LIB_<modulename>
@@ -32,7 +33,8 @@ ASBINLIB = -I source/boot/include/
 CFLAGS  = -Wall $(LIB) -c -m32 -fno-builtin -fno-stack-protector -W -Wstrict-prototypes -Wmissing-prototypes 
 OBJS = $(BUILD_KER)/main.o $(BUILD_KER)/init.o $(BUILD_KER)/interrupt.o \
       $(BUILD_DEV)/timer.o $(BUILD_KER)/kernel.o $(BUILD_LIB)/print.o \
-      $(BUILD_KER)/debug.o $(BUILD_LIB)/string.o
+      $(BUILD_KER)/debug.o $(BUILD_LIB)/string.o $(BUILD_LIB)/bitmap.o \
+	  $(BUILD_KER)/memory.o
 LDFLAGS = -m elf_i386 -Ttext $(ENTRY_POINT) -e main -Map $(BUILD_KER)/kernel.map
 
 ##############     MBR代码编译     ############### 
@@ -50,7 +52,8 @@ $(BUILD_KER)/main.o: $(SRC_KER)/main.c $(SRC_KER)/init.h \
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_KER)/init.o: $(SRC_KER)/init.c $(SRC_KER)/init.h $(LIB_KER)/print.h \
-        $(LIB_ROOT)/stdint.h $(SRC_KER)/interrupt.h $(SRC_DEV)/timer.h
+        $(SRC_KER)/memory.h $(LIB_ROOT)/stdint.h $(SRC_KER)/interrupt.h \
+		$(SRC_DEV)/timer.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_KER)/interrupt.o: $(SRC_KER)/interrupt.c $(SRC_KER)/interrupt.h \
@@ -65,10 +68,17 @@ $(BUILD_KER)/debug.o: $(SRC_KER)/debug.c $(SRC_KER)/debug.h \
         $(LIB_KER)/print.h $(LIB_ROOT)/stdint.h $(SRC_KER)/interrupt.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BUILD_LIB)/string.o: $(SRC_LIB)/string.c $(SRC_LIB)/string.h \
+$(BUILD_LIB)/string.o: $(SRC_LIB)/string.c $(LIB_ROOT)/string.h \
 		$(LIB_ROOT)/stdint.h $(SRC_KER)/debug.h $(SRC_KER)/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
+$(BUILD_LIB)/bitmap.o: $(SRC_LIB_KER)/bitmap.c $(LIB_KER)/bitmap.h $(LIB_ROOT)/string.h \
+		$(SRC_KER)/debug.h $(LIB_ROOT)/stdint.h  $(SRC_KER)/global.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_KER)/memory.o: $(SRC_KER)/memory.c $(SRC_KER)/memory.h $(LIB_KER)/print.h \
+		$(LIB_ROOT)/stdint.h
+	$(CC) $(CFLAGS) $< -o $@
 
 ##############    汇编代码编译    ###############
 $(BUILD_KER)/kernel.o: $(SRC_KER)/kernel.S
