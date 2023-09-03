@@ -1,0 +1,6 @@
+image/
+build/
+.vscode/
+script/
+.gitignore
+Archiv/
