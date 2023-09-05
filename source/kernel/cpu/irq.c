@@ -1,8 +1,6 @@
 /**
  * 中断处理
  *
- *
- *
  */
 #include "cpu/irq.h"
 #include "cpu/cpu.h"

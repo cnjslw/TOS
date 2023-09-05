@@ -1,12 +1,8 @@
 /**
  *
- *
  * 系统引导部分，启动时由硬件加载运行，然后完成对二级引导程序loader的加载
  * 该部分程序存储于磁盘的第1个扇区，在计算机启动时将会由BIOS加载到0x7c00处
  * 之后，将由BIOS跳转至0x7c00处开始运行
- * 
- *
- *
  */
 	#include "boot.h"
 
@@ -29,9 +25,9 @@ _start:
 	mov $_start, %esp
 
 	// 显示boot加载完成提示
-	mov $0xe, %ah
-	mov $'L', %al
-	int $0x10
+	// mov $0xe, %ah
+	// mov $'L', %al
+	// int $0x10
 
 	// 加载loader，只支持磁盘1
 	// https://wiki.osdev.org/Disk_access_using_the_BIOS_(INT_13h)
