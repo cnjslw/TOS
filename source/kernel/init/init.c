@@ -28,9 +28,11 @@ void kernel_init(boot_info_t* boot_info)
     log_init();
     irq_init();
     time_init();
+
+    task_manager_init();
 }
 
-static task_t first_task; // 第一个任务
+// static task_t first_task; // 第一个任务
 static uint32_t init_task_stack[1024]; // 空闲任务堆栈
 static task_t init_task;
 
@@ -44,7 +46,7 @@ void init_task_entry(void)
 
     for (;;) {
         log_printf("init task: %d", count++);
-        task_switch_from_to(&init_task, &first_task);
+        // sys_yield();
     }
 }
 
@@ -108,21 +110,21 @@ void list_test()
 
 void init_main(void)
 {
-    list_test();
+    // ist_test();
     log_printf("Kernel is running....");
     log_printf("Version: %s, name: %s", OS_VERSION, "tiny x86 os");
-    log_printf("%d %d %x %c", -123, 123456, 0x12345, 'a');
+    // log_printf("%d %d %x %c", -123, 123456, 0x12345, 'a');
 
     // 初始化任务
-    // task_init(&init_task, (uint32_t)init_task_entry, (uint32_t)&init_task_stack[1024]);
-    // task_init(&first_task, 0, 0);
+    task_init(&init_task, "init task", (uint32_t)init_task_entry, (uint32_t)&init_task_stack[1024]);
+    task_first_init();
     // write_tr(first_task.tss_sel);
 
     // int a = 3 / 0;
-    //  irq_enable_global();
-    // int count = 0;
-    // for (;;) {
-    //     log_printf("first task: %d", count++);
-    //     task_switch_from_to(&first_task, &init_task);
-    // }
+    irq_enable_global();
+    int count = 0;
+    for (;;) {
+        log_printf("first task: %d", count++);
+        // sys_yield();
+    }
 }
