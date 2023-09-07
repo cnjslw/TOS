@@ -10,6 +10,7 @@
 #include "tools/log.h"
 
 static task_manager_t task_manager;
+static uint32_t idle_task_stack[IDLE_STACK_SIZE];
 static int tss_init(task_t* task, uint32_t entry, uint32_t esp)
 {
     // 为TSS分配GDT
@@ -58,12 +59,16 @@ int task_init(task_t* task, const char* name, uint32_t entry, uint32_t esp)
         log_printf("init task failed.\n");
         return err;
     }
+    // 任务字段初始化
     kernel_strncpy(task->name, name, TASK_NAME_SIZE);
     task->state = TASK_CREATED;
+    task->sleep_ticks = 0;
     task->time_slice = TASK_TIME_SLICE_DEFAULT;
     task->slice_ticks = task->time_slice;
     list_node_init(&task->all_node);
     list_node_init(&task->run_node);
+
+    // 插入就绪队列和所有任务队列
     irq_state_t state = irq_enter_protection();
     task_set_ready(task);
     list_insert_last(&task_manager.task_list, &task->all_node);
@@ -84,6 +89,17 @@ void task_switch_from_to(task_t* from, task_t* to)
     switch_to_tss(to->tss_sel);
     // simple_switch(&from->stack, to->stack);
 }
+
+/**
+ * @brief 空闲进程的运行函数
+ */
+static void idle_task_entry(void)
+{
+    for (;;) {
+        hlt();
+    }
+}
+
 /**
  * @brief 任务管理器初始化
  */
@@ -91,6 +107,15 @@ void task_manager_init(void)
 {
     list_init(&task_manager.ready_list);
     list_init(&task_manager.task_list);
+    list_init(&task_manager.sleep_list);
+
+    // 空闲任务初始化
+    task_init(
+        &task_manager.idle_task,
+        "idle task",
+        (uint32_t)idle_task_entry,
+        (uint32_t)(idle_task_stack + IDLE_STACK_SIZE));
+
     task_manager.curr_task = (task_t*)0;
 }
 
@@ -112,17 +137,24 @@ task_t* task_first_task(void)
     return &task_manager.first_task;
 }
 
+/**
+ * @brief 插入就绪队列
+ */
 void task_set_ready(task_t* task)
 {
-    list_insert_last(&task_manager.ready_list, &task->run_node);
-    task->state = TASK_READY;
+    if (task != &task_manager.idle_task) {
+        list_insert_last(&task_manager.ready_list, &task->run_node);
+        task->state = TASK_READY;
+    }
 }
 /**
  * @brief 将任务从就绪队列中删除
  */
 void task_set_block(task_t* task)
 {
-    list_remove(&task_manager.ready_list, &task->run_node);
+    if (task != &task_manager.idle_task) {
+        list_remove(&task_manager.ready_list, &task->run_node);
+    }
 }
 
 /**
@@ -130,8 +162,34 @@ void task_set_block(task_t* task)
  */
 static task_t* task_next_run(void)
 {
+    // 空闲任务
+    if (list_count(&task_manager.ready_list) == 0) {
+        return &task_manager.idle_task;
+    }
+
+    // Normal Task
     list_node_t* task_node = list_first(&task_manager.ready_list);
     return list_node_parent(task_node, task_t, run_node);
+}
+
+/**
+ * @brief 将任务加入睡眠队列
+ */
+void task_set_sleep(task_t* task, uint32_t ticks)
+{
+    if (ticks <= 0)
+        return;
+    task->sleep_ticks = ticks;
+    task->state = TASK_SLEEP;
+    list_insert_last(&task_manager.sleep_list, &task->run_node);
+}
+
+/**
+ * @brief 从睡眠任务队列中删除任务
+ */
+void task_set_wakeup(task_t* task)
+{
+    list_remove(&task_manager.sleep_list, &task->run_node);
 }
 
 /**
@@ -188,7 +246,44 @@ void task_time_tick(void)
         curr_task->slice_ticks = curr_task->time_slice;
         task_set_block(curr_task);
         task_set_ready(curr_task);
-        task_dispatch();
     }
+
+    // 睡眠处理
+    list_node_t* curr = list_first(&task_manager.sleep_list);
+    while (curr) {
+        // 先保存当前的睡眠队列头节点,防止该任务的时间片用完直接移动到就绪队列,
+        // 从而无法遍历下一个睡眠列表的节点
+        list_node_t* next = list_node_next(curr);
+        task_t* task = list_node_parent(curr, task_t, run_node);
+        if (--task->sleep_ticks == 0) {
+            task_set_wakeup(task);
+            task_set_ready(task);
+        }
+        curr = next;
+    }
+
+    task_dispatch();
+    irq_leave_protection(state);
+}
+
+/**
+ * @brief 任务进入睡眠状态
+ */
+
+void sys_msleep(uint32_t ms)
+{
+    if (ms < OS_TICK_MS) {
+        ms = OS_TICK_MS;
+    }
+    irq_state_t state = irq_enter_protection();
+
+    // 从就绪队列移除，加入睡眠队列
+    task_set_block(task_manager.curr_task);
+    // 睡眠时间向上取整
+    task_set_sleep(task_manager.curr_task, (ms + (OS_TICK_MS - 1)) / OS_TICK_MS);
+
+    // 进行一次调度
+    task_dispatch();
+
     irq_leave_protection(state);
 }
