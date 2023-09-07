@@ -66,6 +66,7 @@ int task_init(task_t* task, const char* name, uint32_t entry, uint32_t esp)
     task->time_slice = TASK_TIME_SLICE_DEFAULT;
     task->slice_ticks = task->time_slice;
     list_node_init(&task->all_node);
+    list_node_init(&task->wait_node);
     list_node_init(&task->run_node);
 
     // 插入就绪队列和所有任务队列

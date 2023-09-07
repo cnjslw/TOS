@@ -8,6 +8,7 @@
 #include "cpu/cpu.h"
 #include "cpu/irq.h"
 #include "dev/time.h"
+#include "ipc/sem.h"
 #include "os_cfg.h"
 #include "tools/klib.h"
 #include "tools/list.h"
@@ -35,6 +36,7 @@ void kernel_init(boot_info_t* boot_info)
 // static task_t first_task; // 第一个任务
 static uint32_t init_task_stack[1024]; // 空闲任务堆栈
 static task_t init_task;
+static sem_t sem;
 
 /**
  * 初始任务函数
@@ -45,6 +47,7 @@ void init_task_entry(void)
     int count = 0;
 
     for (;;) {
+        sem_wait(&sem);
         log_printf("init task: %d", count++);
         //  sys_yield();
         sys_msleep(2000);
@@ -121,12 +124,16 @@ void init_main(void)
     task_first_init();
     // write_tr(first_task.tss_sel);
 
+    // 信号量初始化
+    sem_init(&sem, 2);
+
     // int a = 3 / 0;
     irq_enable_global();
     int count = 0;
     for (;;) {
         log_printf("first task: %d", count++);
         // sys_yield();
+        sem_notify(&sem);
         sys_msleep(1000);
     }
 }

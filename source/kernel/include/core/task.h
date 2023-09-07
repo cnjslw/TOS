@@ -29,6 +29,7 @@ typedef struct _task_t {
     tss_t tss; // 任务的TSS段
     uint16_t tss_sel; // tss选择子
     list_node_t run_node; // 运行相关节点
+    list_node_t wait_node; // 等待队列
     list_node_t all_node; // 所有队列节点
 } task_t;
 
