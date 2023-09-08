@@ -1,35 +1,38 @@
 /* 参考文档： https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html */
 SECTIONS
 {
-    . = 0x00010000;
+	PROVIDE(kernel_base = 0x0);
 
+	. = 0x00010000;
+
+	PROVIDE(s_text = .);
 	.text : {
-		*(.text)
-	} 
-
-	.rodata : {
-		*(.rodata)
+		*(EXCLUDE_FILE(*first_task*) .text)
 	}
+	.rodata : {
+		*(EXCLUDE_FILE(*first_task*) .rodata)
+	}
+	PROVIDE(e_text = .);
 
+	. = ALIGN(4096);
+	PROVIDE(s_data = .);
 	.data : {
-		*(.data)
+		*(EXCLUDE_FILE(*first_task*) .data)
 	}
 	.bss : {
-		*(.bss)
+		*(EXCLUDE_FILE(*first_task*) .bss)
 	}
+	e_data = .;
 
-	PROVIDE(mem_free_start = .);
-	/*
-	PROVIDE(mem_free_start = .); 是一个链接脚本中的指令，用于指定符号（symbol）的值，通常在链接过程中用于确定程序的内存布局和地址分配。
-	让我解释这段指令的含义：PROVIDE：这是一个用于链接脚本的关键字或指令。
-	它用于提供一个符号的值，以便在链接过程中将其分配给相应的地址。
-	mem_free_start：这是要提供的符号的名称。符号是一个在程序中标识位置或变量的名称，它可以在不同的源文件中定义和引用。
-	=：这表示为符号指定一个值。
-	.：这是链接脚本中的特殊符号，表示当前的链接地址。
-	在链接过程中，链接器将根据内存布局和节（sections）的定义来确定这个地址。
-	通常，. 表示当前节的结束地址。
-	所以，PROVIDE(mem_free_start = .); 的含义是将符号 mem_free_start 的值设置为当前链接地址（.）。
-	这可以用于在链接脚本中控制程序的内存布局，例如，将某个符号定义为当前地址，以便在程序中引用该地址。
-	在某些情况下，这种方法可用于在程序中获取特定节（如代码、数据或堆栈）的开始地址，以便进行运行时操作或访问特定的内存区域。
-	*/
+	/* 初始进程的配置：接紧着在低端1MB内存开始存储，但是运行时搬运到0x80000000处 */
+	. = 0x80000000;
+
+	PROVIDE(s_first_task = LOADADDR(.first_task));
+	.first_task : AT(e_data) {
+		*first_task_entry*(.text .data. rodata .data)
+		*first_task*(.text .data. rodata .data)
+	}
+	PROVIDE(e_first_task = LOADADDR(.first_task) + SIZEOF(.first_task));
+
+	PROVIDE(mem_free_start = e_first_task);
 }

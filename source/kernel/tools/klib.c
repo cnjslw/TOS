@@ -54,8 +54,7 @@ int kernel_strlen(const char* str)
 
 /**
  * 比较两个字符串，最多比较size个字符
- * 如果某一字符串提前比较完成，也算相同
- */
+ * 如果某一字符串提前比较完成，也算相同*/
 int kernel_strncmp(const char* s1, const char* s2, int size)
 {
     if (!s1 || !s2) {
@@ -159,8 +158,7 @@ void kernel_itoa(char* buf, int num, int base)
 }
 
 /**
- * @brief 格式化字符串到缓存中
- */
+ * @brief 格式化字符串到缓存中*/
 void kernel_sprintf(char* buffer, const char* fmt, ...)
 {
     va_list args;
@@ -171,8 +169,7 @@ void kernel_sprintf(char* buffer, const char* fmt, ...)
 }
 
 /**
- * 格式化字符串
- */
+ * 格式化字符串*/
 void kernel_vsprintf(char* buffer, const char* fmt, va_list args)
 {
     enum { NORMAL,
