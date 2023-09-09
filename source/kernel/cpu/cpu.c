@@ -1,6 +1,6 @@
 ﻿/**
  * CPU设置
-*/
+ */
 #include "comm/cpu_instr.h"
 #include "cpu/cpu.h"
 #include "cpu/irq.h"
@@ -12,7 +12,8 @@ static segment_desc_t gdt_table[GDT_TABLE_SIZE];
 static mutex_t mutex;
 
 /**
- * 设置段描述符*/
+ * 设置段描述符
+ */
 void segment_desc_set(int selector, uint32_t base, uint32_t limit, uint16_t attr) {
     segment_desc_t * desc = gdt_table + (selector >> 3);
 
@@ -29,7 +30,8 @@ void segment_desc_set(int selector, uint32_t base, uint32_t limit, uint16_t attr
 }
 
 /**
- * 设置门描述符*/
+ * 设置门描述符
+ */
 void gate_desc_set(gate_desc_t * desc, uint16_t selector, uint32_t offset, uint16_t attr) {
 	desc->offset15_0 = offset & 0xffff;
 	desc->selector = selector;
@@ -44,7 +46,8 @@ void gdt_free_sel (int sel) {
 }
 
 /**
- * 分配一个GDT推荐表符*/
+ * 分配一个GDT推荐表符
+ */
 int gdt_alloc_desc (void) {
     int i;
 
@@ -63,7 +66,8 @@ int gdt_alloc_desc (void) {
 }
 
 /**
- * 初始化GDT*/
+ * 初始化GDT
+ */
 void init_gdt(void) {
 	// 全部清空
     for (int i = 0; i < GDT_TABLE_SIZE; i++) {
@@ -91,13 +95,15 @@ void init_gdt(void) {
 }
 
 /**
- * 切换至TSS，即跳转实现任务切换*/
+ * 切换至TSS，即跳转实现任务切换
+ */
 void switch_to_tss (uint32_t tss_selector) {
     far_jump(tss_selector, 0);
 }
 
 /**
- * CPU初始化*/
+ * CPU初始化
+ */
 void cpu_init (void) {
     mutex_init(&mutex);
 

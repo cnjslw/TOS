@@ -4,3 +4,5 @@ build/
 script/
 .gitignore
 Archiv/
+.VSCodeCounter/
+*.drawio*

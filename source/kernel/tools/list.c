@@ -2,7 +2,8 @@
 
 /**
  * 初始化链表
- * @param list 待初始化的链表*/
+ * @param list 待初始化的链表
+ */
 void list_init(list_t *list) {
     list->first = list->last = (list_node_t *)0;
     list->count = 0;
@@ -11,7 +12,8 @@ void list_init(list_t *list) {
 /**
  * 将指定表项插入到指定链表的头部
  * @param list 待插入的链表
- * @param node 待插入的结点*/
+ * @param node 待插入的结点
+ */
 void list_insert_first(list_t *list, list_node_t *node) {
     // 设置好待插入结点的前后，前面为空
     node->next = list->first;
@@ -35,7 +37,8 @@ void list_insert_first(list_t *list, list_node_t *node) {
 /**
  * 将指定表项插入到指定链表的尾部
  * @param list 操作的链表
- * @param node 待插入的结点*/
+ * @param node 待插入的结点
+ */
 void list_insert_last(list_t *list, list_node_t *node) {
     // 设置好结点本身
     node->pre = list->last;
@@ -58,7 +61,8 @@ void list_insert_last(list_t *list, list_node_t *node) {
 /**
  * 移除指定链表的头部
  * @param list 操作的链表
- * @return 链表的第一个结点*/
+ * @return 链表的第一个结点
+ */
 list_node_t* list_remove_first(list_t *list) {
     // 表项为空，返回空
     if (list_is_empty(list)) {
@@ -88,7 +92,8 @@ list_node_t* list_remove_first(list_t *list) {
 
 /**
  * 移除指定链表的中的表项
- * 不检查node是否在结点中*/
+ * 不检查node是否在结点中
+ */
 list_node_t * list_remove(list_t *list, list_node_t *remove_node) {
     // 如果是头，头往前移
     if (remove_node == list->first) {

@@ -1,6 +1,6 @@
 /**
  * 与x86的体系结构相关的接口及参数
-*/
+ */
 #ifndef CPU_H
 #define CPU_H
 
@@ -38,7 +38,8 @@
 #pragma pack(1)
 
 /**
- * GDT描述符*/
+ * GDT描述符
+ */
 typedef struct _segment_desc_t {
 	uint16_t limit15_0;
 	uint16_t base15_0;
@@ -48,7 +49,8 @@ typedef struct _segment_desc_t {
 }segment_desc_t;
 
 /*
- * 调用门描述符*/
+ * 调用门描述符
+ */
 typedef struct _gate_desc_t {
 	uint16_t offset15_0;
 	uint16_t selector;
@@ -57,7 +59,8 @@ typedef struct _gate_desc_t {
 }gate_desc_t;
 
 /**
- * tss描述符*/
+ * tss描述符
+ */
 typedef struct _tss_t {
     uint32_t pre_link;
     uint32_t esp0, ss0, esp1, ss1, esp2, ss2;

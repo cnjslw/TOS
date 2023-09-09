@@ -1,6 +1,6 @@
 ﻿/**
  * 系统启动信息
-*/
+ */
 #ifndef BOOT_INFO_H
 #define BOOT_INFO_H
 
@@ -9,7 +9,8 @@
 #define BOOT_RAM_REGION_MAX			10		// RAM区最大数量
 
 /**
- * 启动信息参数*/
+ * 启动信息参数
+ */
 typedef struct _boot_info_t {
     // RAM区信息
     struct {

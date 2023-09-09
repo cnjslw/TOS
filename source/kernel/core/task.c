@@ -1,6 +1,6 @@
 ﻿/**
  * 任务管理
-*/
+ */
 #include "comm/cpu_instr.h"
 #include "core/task.h"
 #include "tools/klib.h"
@@ -10,9 +10,12 @@
 #include "core/memory.h"
 #include "cpu/cpu.h"
 #include "cpu/mmu.h"
+#include "core/syscall.h"
 
 static task_manager_t task_manager;     // 任务管理器
 static uint32_t idle_task_stack[IDLE_STACK_SIZE];	// 空闲任务堆栈
+static task_t task_table[TASK_NR];      // 用户进程表
+static mutex_t task_table_mutex;        // 进程表互斥访问锁
 
 static int tss_init (task_t * task, int flag, uint32_t entry, uint32_t esp) {
     // 为TSS分配GDT
@@ -75,7 +78,8 @@ tss_init_failed:
 }
 
 /**
- * @brief 初始化任务*/
+ * @brief 初始化任务
+ */
 int task_init (task_t *task, const char * name, int flag, uint32_t entry, uint32_t esp) {
     ASSERT(task != (task_t *)0);
 
@@ -91,6 +95,7 @@ int task_init (task_t *task, const char * name, int flag, uint32_t entry, uint32
     task->sleep_ticks = 0;
     task->time_slice = TASK_TIME_SLICE_DEFAULT;
     task->slice_ticks = task->time_slice;
+    task->parent = (task_t *)0;
     list_node_init(&task->all_node);
     list_node_init(&task->run_node);
     list_node_init(&task->wait_node);
@@ -104,10 +109,30 @@ int task_init (task_t *task, const char * name, int flag, uint32_t entry, uint32
     return 0;
 }
 
+/**
+ * @brief 任务任务初始时分配的各项资源
+ */
+void task_uninit (task_t * task) {
+    if (task->tss_sel) {
+        gdt_free_sel(task->tss_sel);
+    }
+
+    if (task->tss.esp0) {
+        memory_free_page(task->tss.esp0 - MEM_PAGE_SIZE);
+    }
+
+    if (task->tss.cr3) {
+        memory_destroy_uvm(task->tss.cr3);
+    }
+
+    kernel_memset(task, 0, sizeof(task_t));
+}
+
 void simple_switch (uint32_t ** from, uint32_t * to);
 
 /**
- * @brief 切换至指定任务*/
+ * @brief 切换至指定任务
+ */
 void task_switch_from_to (task_t * from, task_t * to) {
      switch_to_tss(to->tss_sel);
     //simple_switch(&from->stack, to->stack);
@@ -120,7 +145,8 @@ void task_switch_from_to (task_t * from, task_t * to) {
  * 将init加载地址设置成和内核一起的，运行地址设置成用户进程运行的高处。
  * 不过，考虑到init可能用到newlib库，如果与kernel合并编译，在lds中很难控制将newlib的
  * 代码与init进程的放在一起，有可能与kernel放在了一起。
- * 综上，最好是分离。*/
+ * 综上，最好是分离。
+ */
 void task_first_init (void) {
     void first_task_entry (void);
 
@@ -151,13 +177,15 @@ void task_first_init (void) {
 }
 
 /**
- * @brief 返回初始任务*/
+ * @brief 返回初始任务
+ */
 task_t * task_first_task (void) {
     return &task_manager.first_task;
 }
 
 /**
- * @brief 空闲任务*/
+ * @brief 空闲任务
+ */
 static void idle_task_entry (void) {
     for (;;) {
         hlt();
@@ -165,8 +193,12 @@ static void idle_task_entry (void) {
 }
 
 /**
- * @brief 任务管理器初始化*/
+ * @brief 任务管理器初始化
+ */
 void task_manager_init (void) {
+    kernel_memset(task_table, 0, sizeof(task_table));
+    mutex_init(&task_table_mutex);
+
     //数据段和代码段，使用DPL3，所有应用共用同一个
     //为调试方便，暂时使用DPL0
     int sel = gdt_alloc_desc();
@@ -196,7 +228,8 @@ void task_manager_init (void) {
 }
 
 /**
- * @brief 将任务插入就绪队列*/
+ * @brief 将任务插入就绪队列
+ */
 void task_set_ready(task_t *task) {
     if (task != &task_manager.idle_task) {
         list_insert_last(&task_manager.ready_list, &task->run_node);
@@ -205,14 +238,16 @@ void task_set_ready(task_t *task) {
 }
 
 /**
- * @brief 将任务从就绪队列移除*/
+ * @brief 将任务从就绪队列移除
+ */
 void task_set_block (task_t *task) {
     if (task != &task_manager.idle_task) {
         list_remove(&task_manager.ready_list, &task->run_node);
     }
 }
 /**
- * @brief 获取下一将要运行的任务*/
+ * @brief 获取下一将要运行的任务
+ */
 static task_t * task_next_run (void) {
     // 如果没有任务，则运行空闲任务
     if (list_count(&task_manager.ready_list) == 0) {
@@ -225,7 +260,8 @@ static task_t * task_next_run (void) {
 }
 
 /**
- * @brief 将任务加入睡眠状态*/
+ * @brief 将任务加入睡眠状态
+ */
 void task_set_sleep(task_t *task, uint32_t ticks) {
     if (ticks <= 0) {
         return;
@@ -239,19 +275,22 @@ void task_set_sleep(task_t *task, uint32_t ticks) {
 /**
  * @brief 将任务从延时队列移除
  * 
- * @param task */
+ * @param task 
+ */
 void task_set_wakeup (task_t *task) {
     list_remove(&task_manager.sleep_list, &task->run_node);
 }
 
 /**
- * @brief 获取当前正在运行的任务*/
+ * @brief 获取当前正在运行的任务
+ */
 task_t * task_current (void) {
     return task_manager.curr_task;
 }
 
 /**
- * @brief 当前任务主动放弃CPU*/
+ * @brief 当前任务主动放弃CPU
+ */
 int sys_yield (void) {
     irq_state_t state = irq_enter_protection();
 
@@ -272,7 +311,8 @@ int sys_yield (void) {
 }
 
 /**
- * @brief 进行一次任务调度*/
+ * @brief 进行一次任务调度
+ */
 void task_dispatch (void) {
     task_t * to = task_next_run();
     if (to != task_manager.curr_task) {
@@ -285,7 +325,8 @@ void task_dispatch (void) {
 
 /**
  * @brief 时间处理
- * 该函数在中断处理函数中调用*/
+ * 该函数在中断处理函数中调用
+ */
 void task_time_tick (void) {
     task_t * curr_task = task_current();
 
@@ -320,9 +361,38 @@ void task_time_tick (void) {
 }
 
 /**
+ * @brief 分配一个任务结构
+ */
+static task_t * alloc_task (void) {
+    task_t * task = (task_t *)0;
+
+    mutex_lock(&task_table_mutex);
+    for (int i = 0; i < TASK_NR; i++) {
+        task_t * curr = task_table + i;
+        if (curr->name[0] == 0) {
+            task = curr;
+            break;
+        }
+    }
+    mutex_unlock(&task_table_mutex);
+
+    return task;
+}
+
+/**
+ * @brief 释放任务结构
+ */
+static void free_task (task_t * task) {
+    mutex_lock(&task_table_mutex);
+    task->name[0] = 0;
+    mutex_unlock(&task_table_mutex);
+}
+
+/**
  * @brief 任务进入睡眠状态
  * 
- * @param ms */
+ * @param ms 
+ */
 void sys_msleep (uint32_t ms) {
     // 至少延时1个tick
     if (ms < OS_TICK_MS) {
@@ -342,7 +412,65 @@ void sys_msleep (uint32_t ms) {
 }
 
 /**
- * 返回任务的pid*/
+ * @brief 创建进程的副本
+ */
+int sys_fork (void) {
+    task_t * parent_task = task_current();
+
+    // 分配任务结构
+    task_t * child_task = alloc_task();
+    if (child_task == (task_t *)0) {
+        goto fork_failed;
+    }
+
+    syscall_frame_t * frame = (syscall_frame_t *)(parent_task->tss.esp0 - sizeof(syscall_frame_t));
+
+    // 对子进程进行初始化，并对必要的字段进行调整
+    // 其中esp要减去系统调用的总参数字节大小，因为其是通过正常的ret返回, 而没有走系统调用处理的ret(参数个数返回)
+    int err = task_init(child_task,  parent_task->name, 0, frame->eip,
+                        frame->esp + sizeof(uint32_t)*SYSCALL_PARAM_COUNT);
+    if (err < 0) {
+        goto fork_failed;
+    }
+
+    // 从父进程的栈中取部分状态，然后写入tss。
+    // 注意检查esp, eip等是否在用户空间范围内，不然会造成page_fault
+    tss_t * tss = &child_task->tss;
+    tss->eax = 0;                       // 子进程返回0
+    tss->ebx = frame->ebx;
+    tss->ecx = frame->ecx;
+    tss->edx = frame->edx;
+    tss->esi = frame->esi;
+    tss->edi = frame->edi;
+    tss->ebp = frame->ebp;
+
+    tss->cs = frame->cs;
+    tss->ds = frame->ds;
+    tss->es = frame->es;
+    tss->fs = frame->fs;
+    tss->gs = frame->gs;
+    tss->eflags = frame->eflags;
+
+    child_task->parent = parent_task;
+
+    // 复制父进程的内存空间到子进程
+    if ((child_task->tss.cr3 = memory_copy_uvm(parent_task->tss.cr3)) < 0) {
+        goto fork_failed;
+    }
+
+    // 创建成功，返回子进程的pid
+    return child_task->pid;
+fork_failed:
+    if (child_task) {
+        task_uninit (child_task);
+        free_task(child_task);
+    }
+    return -1;
+}
+
+/**
+ * 返回任务的pid
+ */
 int sys_getpid (void) {
     task_t * curr_task = task_current();
     return curr_task->pid;

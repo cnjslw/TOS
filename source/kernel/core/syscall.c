@@ -1,6 +1,6 @@
 /**
  * 系统调用实现
-*/
+ */
 #include "core/syscall.h"
 #include "tools/klib.h"
 #include "core/task.h"
@@ -19,11 +19,13 @@ static const syscall_handler_t sys_table[] = {
 	[SYS_msleep] = (syscall_handler_t)sys_msleep,
     [SYS_getpid] =(syscall_handler_t)sys_getpid,
 
-	[SYS_printmsg] = (syscall_handler_t)sys_print_msg,
+    [SYS_printmsg] = (syscall_handler_t)sys_print_msg,
+	[SYS_fork] = (syscall_handler_t)sys_fork,
 };
 
 /**
- * 处理系统调用。该函数由系统调用函数调用*/
+ * 处理系统调用。该函数由系统调用函数调用
+ */
 void do_handler_syscall (syscall_frame_t * frame) {
 	// 超出边界，返回错误
     if (frame->func_id < sizeof(sys_table) / sizeof(sys_table[0])) {

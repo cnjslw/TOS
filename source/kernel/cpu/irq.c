@@ -1,6 +1,6 @@
 /**
  * 中断处理
-*/
+ */
 #include "cpu/irq.h"
 #include "cpu/cpu.h"
 #include "comm/cpu_instr.h"
@@ -219,7 +219,8 @@ void pic_send_eoi(int irq_num) {
 }
 
 /**
- * @brief 中断和异常初始化*/
+ * @brief 中断和异常初始化
+ */
 void irq_init(void) {
 	for (uint32_t i = 0; i < IDT_TABLE_NR; i++) {
     	gate_desc_set(idt_table + i, KERNEL_SELECTOR_CS, (uint32_t) exception_handler_unknown,
@@ -255,7 +256,8 @@ void irq_init(void) {
 }
 
 /**
- * @brief 安装中断或异常处理程序*/
+ * @brief 安装中断或异常处理程序
+ */
 int irq_install(int irq_num, irq_handler_t handler) {
 	if (irq_num >= IDT_TABLE_NR) {
 		return -1;
@@ -307,7 +309,8 @@ void irq_enable_global(void) {
 }
 
 /**
- * @brief 进入中断保护*/
+ * @brief 进入中断保护
+ */
 irq_state_t irq_enter_protection (void) {
     irq_state_t state = read_eflags();
     irq_disable_global();
@@ -315,7 +318,8 @@ irq_state_t irq_enter_protection (void) {
 }
 
 /**
- * @brief 退出中断保护*/
+ * @brief 退出中断保护
+ */
 void irq_leave_protection (irq_state_t state) {
     write_eflags(state);
 }

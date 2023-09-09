@@ -11,7 +11,8 @@
 static uint32_t sys_tick;						// 系统启动后的tick数量
 
 /**
- * 定时器中断处理函数*/
+ * 定时器中断处理函数
+ */
 void do_handler_timer (exception_frame_t *frame) {
     sys_tick++;
 
@@ -23,7 +24,8 @@ void do_handler_timer (exception_frame_t *frame) {
 }
 
 /**
- * 初始化硬件定时器*/
+ * 初始化硬件定时器
+ */
 static void init_pit (void) {
     uint32_t reload_count = PIT_OSC_FREQ / (1000.0 / OS_TICK_MS);
 
@@ -36,7 +38,8 @@ static void init_pit (void) {
 }
 
 /**
- * 定时器初始化*/
+ * 定时器初始化
+ */
 void time_init (void) {
     sys_tick = 0;
 

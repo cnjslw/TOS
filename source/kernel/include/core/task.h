@@ -1,6 +1,6 @@
 /**
  * 任务实现
-*/
+ */
 #ifndef TASK_H
 #define TASK_H
 
@@ -14,7 +14,8 @@
 #define TASK_FLAG_SYSTEM       	(1 << 0)		// 系统任务
 
 /**
- * @brief 任务控制块结构*/
+ * @brief 任务控制块结构
+ */
 typedef struct _task_t {
     enum {
 		TASK_CREATED,
@@ -27,6 +28,7 @@ typedef struct _task_t {
     char name[TASK_NAME_SIZE];		// 任务名字
 
     int pid;				// 进程的pid
+    struct _task_t * parent;		// 父进程
 
     int sleep_ticks;		// 睡眠时间
     int time_slice;			// 时间片
@@ -71,6 +73,7 @@ void task_first_init (void);
 task_t * task_first_task (void);
 
 int sys_getpid (void);
+int sys_fork (void);
 
 #endif
 

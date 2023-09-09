@@ -1,6 +1,6 @@
 /**
  * 中断处理
-*/
+ */
 #ifndef IRQ_H
 #define IRQ_H
 
@@ -37,7 +37,8 @@
 #define ERR_IDT             (1 << 1)
 
 /**
- * 中断发生时相应的栈结构，暂时为无特权级发生的情况*/
+ * 中断发生时相应的栈结构，暂时为无特权级发生的情况
+ */
 typedef struct _exception_frame_t {
     // 结合压栈的过程，以及pusha指令的实际压入过程
     int gs, fs, es, ds;

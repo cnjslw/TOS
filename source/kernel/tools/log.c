@@ -1,6 +1,6 @@
 /**
  * 日志输出
-*/
+ */
 #include <stdarg.h>
 #include "comm/cpu_instr.h"
 #include "tools/klib.h"
@@ -15,7 +15,8 @@
 static mutex_t mutex;
 
 /**
- * @brief 初始化日志输出*/
+ * @brief 初始化日志输出
+ */
 void log_init (void) {
     mutex_init(&mutex);
 
@@ -32,7 +33,8 @@ void log_init (void) {
 }
 
 /**
- * @brief 日志打印*/
+ * @brief 日志打印
+ */
 void log_printf(const char * fmt, ...) {
     char str_buf[128];
     va_list args;

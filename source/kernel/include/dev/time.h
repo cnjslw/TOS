@@ -1,7 +1,6 @@
 /**
  * 硬件定时器配置
- *
-*/
+ */
 #ifndef TIMER_H
 #define TIMER_H
 

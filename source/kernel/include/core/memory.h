@@ -1,6 +1,6 @@
 /**
  * 内存管理
-*/
+ */
 #ifndef MEMORY_H
 #define MEMORY_H
 
@@ -16,7 +16,8 @@
 #define MEMORY_TASK_BASE        (0x80000000)        // 进程起始地址空间
 
 /**
- * @brief 地址分配结构*/
+ * @brief 地址分配结构
+ */
 typedef struct _addr_alloc_t {
     mutex_t mutex;              // 地址分配互斥信号量
     bitmap_t bitmap;            // 辅助分配用的位图
@@ -27,7 +28,8 @@ typedef struct _addr_alloc_t {
 }addr_alloc_t;
 
 /**
- * @brief 虚拟地址到物理地址之间的映射关系表*/
+ * @brief 虚拟地址到物理地址之间的映射关系表
+ */
 typedef struct _memory_map_t {
     void * vstart;     // 虚拟地址
     void * vend;
@@ -41,5 +43,7 @@ uint32_t memory_alloc_for_page_dir (uint32_t page_dir, uint32_t vaddr, uint32_t 
 int memory_alloc_page_for (uint32_t addr, uint32_t size, int perm);
 uint32_t memory_alloc_page (void);
 void memory_free_page (uint32_t addr);
+void memory_destroy_uvm (uint32_t page_dir);
+uint32_t memory_copy_uvm (uint32_t page_dir);
 
 #endif // MEMORY_H

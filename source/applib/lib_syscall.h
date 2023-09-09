@@ -1,6 +1,6 @@
 /**
  * 系统调用接口
-*/
+ */
 #ifndef LIB_SYSCALL_H
 #define LIB_SYSCALL_H
 
@@ -16,7 +16,8 @@ typedef struct _syscall_args_t {
 }syscall_args_t;
 
 /**
- * 执行系统调用*/
+ * 执行系统调用
+ */
 static inline int sys_call (syscall_args_t * args) {
     // 使用特权级0,其实比3高即可，偏移量不需要，填0即可。类似于far_jump函数的实现
 	const unsigned long sys_gate_addr[] = {0, SELECTOR_SYSCALL | 0};
@@ -61,6 +62,12 @@ static inline int print_msg(char * fmt, int arg) {
     args.id = SYS_printmsg;
     args.arg0 = (int)fmt;
     args.arg1 = arg;
+    return sys_call(&args);
+}
+
+static inline int fork() {
+    syscall_args_t args;
+    args.id = SYS_fork;
     return sys_call(&args);
 }
 

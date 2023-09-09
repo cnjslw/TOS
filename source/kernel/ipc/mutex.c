@@ -1,11 +1,12 @@
 /**
  * 互斥锁
-*/
+ */
 #include "cpu/irq.h"
 #include "ipc/mutex.h"
 
 /**
- * 锁初始化*/
+ * 锁初始化
+ */
 void mutex_init (mutex_t * mutex) {
     mutex->locked_count = 0;
     mutex->owner = (task_t *)0;
@@ -13,7 +14,8 @@ void mutex_init (mutex_t * mutex) {
 }
 
 /**
- * 申请锁*/
+ * 申请锁
+ */
 void mutex_lock (mutex_t * mutex) {
     irq_state_t  irq_state = irq_enter_protection();
 
@@ -37,7 +39,8 @@ void mutex_lock (mutex_t * mutex) {
 }
 
 /**
- * 释放锁*/
+ * 释放锁
+ */
 void mutex_unlock (mutex_t * mutex) {
     irq_state_t  irq_state = irq_enter_protection();
 

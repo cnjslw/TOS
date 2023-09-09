@@ -1,13 +1,14 @@
 /**
  * 计数信号量
-*/
+ */
 #ifndef OS_SEM_H
 #define OS_SEM_H
 
 #include "tools/list.h"
 
 /**
- * 进程同步用的计数信号量*/
+ * 进程同步用的计数信号量
+ */
 typedef struct _sem_t {
     int count;				// 信号量计数
     list_t wait_list;		// 等待的进程列表

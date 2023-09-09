@@ -1,6 +1,6 @@
 /**
  * 系统调用实现
-*/
+ */
 #ifndef OS_SYSCALL_H
 #define OS_SYSCALL_H
 
@@ -8,11 +8,13 @@
 
 #define SYS_msleep              0
 #define SYS_getpid              1
+#define SYS_fork				2
 
 #define SYS_printmsg            100
 
 /**
- * 系统调用的栈信息*/
+ * 系统调用的栈信息
+ */
 typedef struct _syscall_frame_t {
 	int eflags;
 	int gs, fs, es, ds;

@@ -1,19 +1,21 @@
 /**
  * 计数信号量
-*/
+ */
 #include "cpu/irq.h"
 #include "core/task.h"
 #include "ipc/sem.h"
 
 /**
- * 信号量初始化*/
+ * 信号量初始化
+ */
 void sem_init (sem_t * sem, int init_count) {
     sem->count = init_count;
     list_init(&sem->wait_list);
 }
 
 /**
- * 申请信号量*/
+ * 申请信号量
+ */
 void sem_wait (sem_t * sem) {
     irq_state_t  irq_state = irq_enter_protection();
 
@@ -31,7 +33,8 @@ void sem_wait (sem_t * sem) {
 }
 
 /**
- * 释放信号量*/
+ * 释放信号量
+ */
 void sem_notify (sem_t * sem) {
     irq_state_t  irq_state = irq_enter_protection();
 
@@ -50,7 +53,8 @@ void sem_notify (sem_t * sem) {
 }
 
 /**
- * 获取信号量的当前值*/
+ * 获取信号量的当前值
+ */
 int sem_count (sem_t * sem) {
     irq_state_t  irq_state = irq_enter_protection();
     int count = sem->count;

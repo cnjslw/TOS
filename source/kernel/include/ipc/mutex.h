@@ -1,6 +1,6 @@
 /**
  * 互斥锁
-*/
+ */
 #ifndef MUTEX_H
 #define MUTEX_H
 
@@ -8,7 +8,8 @@
 #include "tools/list.h"
 
 /**
- * 进程同步用的计数信号量*/
+ * 进程同步用的计数信号量
+ */
 typedef struct _mutex_t {
     task_t * owner;
     int locked_count;
