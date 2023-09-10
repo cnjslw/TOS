@@ -8,6 +8,7 @@
 #include "cpu/cpu.h"
 #include "cpu/irq.h"
 #include "cpu/mmu.h"
+#include "fs/fs.h"
 #include "os_cfg.h"
 #include "tools/klib.h"
 #include "tools/log.h"
@@ -497,9 +498,39 @@ int sys_getpid(void)
 }
 
 /**
+ * @brief 加载elf文件到内存
+ */
+static uint32_t load_elf_file(task_t* task, const char* name, uint32_t page_dir)
+{
+    return 0;
+}
+
+/**
  * @brief 加载一个进程
  */
 int sys_execve(char* name, char** argv, char** env)
 {
+    task_t* task = task_current();
+    // 为应用准备页表
+    uint32_t old_page_dir = task->tss.cr3;
+    uint32_t new_page_dir = memory_create_uvm();
+    if (!new_page_dir) {
+        goto exec_failed;
+    }
+    // 加载elf文件到内存中,放在开启新页表的后面
+    uint32_t entry = load_elf_file(task, name, new_page_dir);
+    if (entry == 0) {
+        goto exec_failed;
+    }
+    // 切换到新的页表
+    task->tss.cr3 = new_page_dir;
+    mmu_set_page_dir(new_page_dir);
+    return 0;
+exec_failed:
+    if (new_page_dir) {
+        task->tss.cr3 = old_page_dir;
+        mmu_set_page_dir(old_page_dir);
+        memory_destroy_uvm(new_page_dir);
+    }
     return -1;
 }
