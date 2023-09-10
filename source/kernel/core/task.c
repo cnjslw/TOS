@@ -107,10 +107,20 @@ int task_init(task_t* task, const char* name, int flag, uint32_t entry, uint32_t
     // 插入就绪队列中和所有的任务队列中
     irq_state_t state = irq_enter_protection();
     task->pid = (uint32_t)task; // 使用地址，能唯一
-    task_set_ready(task);
+    // task_set_ready(task);
     list_insert_last(&task_manager.task_list, &task->all_node);
     irq_leave_protection(state);
     return 0;
+}
+
+/**
+ * @brief 启动任务
+ */
+void task_start(task_t* task)
+{
+    irq_state_t state = irq_enter_protection();
+    task_set_ready(task);
+    irq_leave_protection(state);
 }
 
 /**
@@ -177,8 +187,10 @@ void task_first_init(void)
 
     // 分配一页内存供代码存放使用，然后将代码复制过去
     memory_alloc_page_for(first_start, alloc_size, PTE_P | PTE_W | PTE_U);
-    kernel_memcpy((void*)first_start, (void*)s_first_task, copy_size);
+    kernel_memcpy((void*)first_start, (void*)&s_first_task, copy_size);
 
+    // 启动进程
+    task_start(&task_manager.first_task);
     // 写TR寄存器，指示当前运行的第一个任务
     write_tr(task_manager.first_task.tss_sel);
 }
@@ -233,6 +245,7 @@ void task_manager_init(void)
         (uint32_t)idle_task_entry,
         0); // 运行于内核模式，无需指定特权级3的栈
     task_manager.curr_task = (task_t*)0;
+    task_start(&task_manager.idle_task);
 }
 
 /**
@@ -480,6 +493,7 @@ int sys_fork(void)
     }
 
     // 创建成功，返回子进程的pid
+    task_start(child_task);
     return child_task->pid;
 fork_failed:
     if (child_task) {
