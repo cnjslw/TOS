@@ -18,6 +18,8 @@ int first_task_main(void)
     } else {
         print_msg("child task id=%d", pid);
         print_msg("parent: %d", count);
+        char* argv[] = { "arg0", "arg1", "arg2", "arg3" };
+        execve("/shell.elf", argv, (char**)0);
     }
 
     pid = getpid();
