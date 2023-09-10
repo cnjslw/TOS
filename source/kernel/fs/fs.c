@@ -1,16 +1,16 @@
-/**
- *文件系统接口
- */
+/*
+ * File Syscall
+*/
 #include "fs/fs.h"
 #include "comm/boot_info.h"
-#include "comm/types.h"
+#include "comm/cpu_instr.h"
 #include "core/task.h"
 #include "tools/klib.h"
 
-#define TEMP_FILE_ID 100 // 文件号
-#define TEMP_ADDR (8 * 1024 * 1024) // 存放地址
+#define TEMP_FILE_ID 100
+#define TEMP_ADDR (8 * 1024 * 1024) // 在0x800000处缓存原始
 
-static uint8_t* temp_pos;
+static uint8_t* temp_pos; // 当前位置
 
 /**
  * 使用LBA48位模式读取磁盘
@@ -45,12 +45,27 @@ static void read_disk(int sector, int sector_count, uint8_t* buf)
 }
 
 /**
- * @brief 读取文件
+ * 打开文件
+ */
+int sys_open(const char* name, int flags, ...)
+{
+    if (name[0] == '/') {
+        // 暂时直接从扇区1000上读取, 读取大概40KB，足够了
+        read_disk(5000, 80, (uint8_t*)TEMP_ADDR);
+        temp_pos = (uint8_t*)TEMP_ADDR;
+        return TEMP_FILE_ID;
+    }
+
+    return -1;
+}
+
+/**
+ * 读取文件api
  */
 int sys_read(int file, char* ptr, int len)
 {
     if (file == TEMP_FILE_ID) {
-        kernel_memset(ptr, temp_pos, len);
+        kernel_memcpy(ptr, temp_pos, len);
         temp_pos += len;
         return len;
     }
@@ -58,12 +73,15 @@ int sys_read(int file, char* ptr, int len)
 }
 
 /**
- * @brief 写文件
+ * 写文件
  */
-int sys_write(int file, char* ptr, int len) { return -1; }
+int sys_write(int file, char* ptr, int len)
+{
+    return -1;
+}
 
 /**
- * @brief 文件访问位置定位
+ * 文件访问位置定位
  */
 int sys_lseek(int file, int ptr, int dir)
 {
@@ -75,6 +93,8 @@ int sys_lseek(int file, int ptr, int dir)
 }
 
 /**
- * @brief 文件关闭
+ * 关闭文件
  */
-int sys_close(int file) { return -1; }
+int sys_close(int file)
+{
+}

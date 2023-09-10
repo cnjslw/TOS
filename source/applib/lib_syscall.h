@@ -50,14 +50,14 @@ static inline int msleep(int ms)
     syscall_args_t args;
     args.id = SYS_msleep;
     args.arg0 = ms;
-    return sys_call(&args);
+	return sys_call(&args);
 }
 
 static inline int getpid()
 {
     syscall_args_t args;
     args.id = SYS_getpid;
-    return sys_call(&args);
+	return sys_call(&args);
 }
 
 static inline int print_msg(char* fmt, int arg)

@@ -14,6 +14,15 @@
 #define TASK_FLAG_SYSTEM (1 << 0) // 系统任务
 
 /**
+ * @brief 任务参数
+ */
+typedef struct _task_args_t {
+    uint32_t ret_addr;
+    uint32_t argc;
+    char** argv;
+} task_args_t;
+
+/**
  * @brief 任务控制块结构
  */
 typedef struct _task_t {
