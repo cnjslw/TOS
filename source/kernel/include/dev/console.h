@@ -3,11 +3,16 @@
 
 #include "comm/types.h"
 
-#define CONSOLE_VIDEO_BASE 0xb8000
-#define CONSOLE_DISP_ADDR 0xb8000 // 控制台显存起始地址,共32kb
+// https://wiki.osdev.org/Printing_To_Screen
+#define CONSOLE_VIDEO_BASE 0xb8000 // 控制台显存起始地址,共32KB
+#define CONSOLE_DISP_ADDR 0xb8000
 #define CONSOLE_DISP_END (0xb8000 + 32 * 1024) // 显存的结束地址
 #define CONSOLE_ROW_MAX 25 // 行数
 #define CONSOLE_COL_MAX 80 // 最大列数
+
+#define ASCII_ESC 0x1b // ESC ascii码
+
+#define ESC_PARAM_MAX 10 // 最多支持的ESC [ 参数数量
 
 // 各种颜色
 typedef enum _cclor_t {
@@ -34,21 +39,33 @@ typedef enum _cclor_t {
  */
 typedef union {
     struct {
-        char c; // 显示字符
+        char c; // 显示的字符
         char foreground : 4; // 前景色
         char background : 3; // 背景色
     };
+
     uint16_t v;
 } disp_char_t;
 
 /**
- * @brief 终端描述符,描述当前字符的位置,背景色,字体色
+ * 终端显示部件
  */
 typedef struct _console_t {
     disp_char_t* disp_base; // 显示基地址
-    int cursor_row, cursor_col; // 当前编辑的行与列
+
+    enum {
+        CONSOLE_WRITE_NORMAL, // 普通模式
+        CONSOLE_WRITE_ESC, // ESC转义序列
+        CONSOLE_WRITE_SQUARE, // ESC [接收状态
+    } write_state;
+
+    int cursor_row, cursor_col; // 当前编辑的行和列
     int display_rows, display_cols; // 显示界面的行数和列数
+    int old_cursor_col, old_cursor_row; // 保存的光标位置
     cclor_t foreground, background; // 前后景色
+
+    int esc_param[ESC_PARAM_MAX]; // ESC [ ;;参数数量
+    int curr_param_index;
 } console_t;
 
 int console_init(void);

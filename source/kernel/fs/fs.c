@@ -7,6 +7,8 @@
 #include "core/task.h"
 #include "dev/console.h"
 #include "tools/klib.h"
+#include "tools/log.h"
+#include <sys/stat.h>
 
 #define TEMP_FILE_ID 100
 #define TEMP_ADDR (8 * 1024 * 1024) // 在0x800000处缓存原始
@@ -79,7 +81,8 @@ int sys_read(int file, char* ptr, int len)
 int sys_write(int file, char* ptr, int len)
 {
     console_write(0, ptr, len);
-    return -1;
+    // log_printf("%s", ptr);
+    return len;
 }
 
 /**
