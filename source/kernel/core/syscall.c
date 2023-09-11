@@ -4,6 +4,7 @@
 #include "core/syscall.h"
 #include "core/memory.h"
 #include "core/task.h"
+#include "fs/fs.h"
 #include "tools/klib.h"
 #include "tools/log.h"
 
@@ -24,6 +25,12 @@ static const syscall_handler_t sys_table[] = {
     [SYS_fork] = (syscall_handler_t)sys_fork,
     [SYS_execve] = (syscall_handler_t)sys_execve,
     [SYS_yield] = (syscall_handler_t)sys_yield,
+
+    [SYS_open] = (syscall_handler_t)sys_open,
+    [SYS_read] = (syscall_handler_t)sys_read,
+    [SYS_write] = (syscall_handler_t)sys_write,
+    [SYS_close] = (syscall_handler_t)sys_close,
+    [SYS_lseek] = (syscall_handler_t)sys_lseek,
 };
 
 /**
