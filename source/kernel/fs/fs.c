@@ -1,10 +1,11 @@
 /*
  * File Syscall
-*/
+ */
 #include "fs/fs.h"
 #include "comm/boot_info.h"
 #include "comm/cpu_instr.h"
 #include "core/task.h"
+#include "dev/console.h"
 #include "tools/klib.h"
 
 #define TEMP_FILE_ID 100
@@ -77,6 +78,7 @@ int sys_read(int file, char* ptr, int len)
  */
 int sys_write(int file, char* ptr, int len)
 {
+    console_write(0, ptr, len);
     return -1;
 }
 

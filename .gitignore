@@ -7,3 +7,6 @@ Archiv/
 .VSCodeCounter/
 *.drawio*
 .gitignore
+newlib/.project
+newlib/*.pdf
+newlib/
