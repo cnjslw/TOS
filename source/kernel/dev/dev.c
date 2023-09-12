@@ -35,7 +35,7 @@ static int is_devid_bad(int dev_id)
 }
 
 /**
- * @brief 打开指定设别
+ * @brief 打开指定Device
  */
 int dev_open(int major, int minor, void* data)
 {

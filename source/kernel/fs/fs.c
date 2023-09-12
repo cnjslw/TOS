@@ -6,6 +6,7 @@
 #include "comm/cpu_instr.h"
 #include "core/task.h"
 #include "dev/console.h"
+#include "fs/file.h"
 #include "tools/klib.h"
 #include "tools/log.h"
 #include <sys/stat.h>
@@ -48,6 +49,14 @@ static void read_disk(int sector, int sector_count, uint8_t* buf)
 }
 
 /**
+ * @brief 文件系统初始化
+ */
+void fs_init(void)
+{
+    file_table_init();
+}
+
+/**
  * 打开文件
  */
 int sys_open(const char* name, int flags, ...)
@@ -80,8 +89,10 @@ int sys_read(int file, char* ptr, int len)
  */
 int sys_write(int file, char* ptr, int len)
 {
-    console_write(0, ptr, len);
-    // log_printf("%s", ptr);
+    char buf[128];
+    kernel_memcpy(buf, ptr, len);
+    buf[len] = '\0';
+    log_printf("%s", buf);
     return len;
 }
 
@@ -100,21 +111,23 @@ int sys_lseek(int file, int ptr, int dir)
 /**
  * 关闭文件
  */
-int sys_close(int file) {
+int sys_close(int file)
+{
 }
-
 
 /**
  * 判断文件描述符与tty关联
  */
-int sys_isatty(int file) {
-	return -1;
+int sys_isatty(int file)
+{
+    return -1;
 }
 
 /**
  * @brief 获取文件状态
  */
-int sys_fstat(int file, struct stat *st) {
+int sys_fstat(int file, struct stat* st)
+{
     kernel_memset(st, 0, sizeof(struct stat));
     st->st_size = 0;
     return 0;

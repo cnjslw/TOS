@@ -257,8 +257,8 @@ static void write_normal(console_t* console, char c)
     case '\r':
         move_to_col0(console);
         break;
-    case '\n': // 暂时这样处理
-        move_to_col0(console);
+    case '\n':
+        // move_to_col0(console);
         move_next_line(console);
         break;
         // 普通字符显示
@@ -437,13 +437,22 @@ static void write_esc_square(console_t* console, char c)
  * 实现pwdget作为tty的输出
  * 可能有多个进程在写，注意保护
  */
-int console_write(int dev, char* data, int size)
+int console_write(tty_t* tty)
 {
-    console_t* console = console_buf + dev;
+    console_t* console = console_buf + tty->console_idx;
 
-    int len;
-    for (len = 0; len < size; len++) {
-        char c = *data++;
+    int len = 0;
+    do {
+        char c;
+
+        // 取字节数据
+        int err = tty_fifo_get(&tty->ofifo, &c);
+        if (err < 0) {
+            break;
+        }
+        sem_notify(&tty->osem);
+
+        // 显示出来
         switch (console->write_state) {
         case CONSOLE_WRITE_NORMAL: {
             write_normal(console, c);
@@ -456,7 +465,9 @@ int console_write(int dev, char* data, int size)
             write_esc_square(console, c);
             break;
         }
-    }
+        len++;
+    } while (1);
+
     update_cursor_pos(console);
     return len;
 }

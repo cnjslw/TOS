@@ -22,6 +22,53 @@ void tty_fifo_init(tty_fifo_t* fifo, char* buf, int size)
 }
 
 /**
+ * @brief 从缓存中取一字节
+ */
+int tty_fifo_get(tty_fifo_t* fifo, char* c)
+{
+    if (fifo->count <= 0) {
+        return -1;
+    }
+
+    *c = fifo->buf[fifo->read++];
+    if (fifo->read >= fifo->size) {
+        fifo->read = 0;
+    }
+    fifo->count--;
+    return 0;
+}
+
+/**
+ * @brief 向缓存中写一字节
+ */
+int tty_fifo_put(tty_fifo_t* fifo, char c)
+{
+    if (fifo->count >= fifo->size) {
+        return -1;
+    }
+    fifo->buf[fifo->write++] = c;
+    if (fifo->write >= fifo->size) {
+        fifo->write = 0;
+    }
+    fifo->count++;
+    return 0;
+}
+
+/**
+ * @brief 判断tty无效
+ */
+static inline tty_t* get_tty(device_t* dev)
+{
+    int tty = dev->minor;
+    if ((tty < 0) || (tty >= TTY_NR) || (!dev->open_count)) {
+        log_printf("tty is not opened. tty = %d", tty);
+        return (tty_t*)0;
+    }
+
+    return tty_devs + tty;
+}
+
+/**
  * @brief 打开tty设备
  */
 int tty_open(device_t* dev)
@@ -34,7 +81,9 @@ int tty_open(device_t* dev)
 
     tty_t* tty = tty_devs + idx;
     tty_fifo_init(&tty->ofifo, tty->obuf, TTY_OBUF_SIZE);
+    sem_init(&tty->osem, TTY_OBUF_SIZE);
     tty_fifo_init(&tty->ififo, tty->ibuf, TTY_IBUF_SIZE);
+    tty->oflags = TTY_OCRLF;
     tty->console_idx = 0;
     kbd_init();
     console_init(idx);
@@ -55,7 +104,38 @@ int tty_read(device_t* dev, int addr, char* buf, int size)
  */
 int tty_write(device_t* dev, int addr, char* buf, int size)
 {
-    return size;
+    if (size < 0) {
+        return -1;
+    }
+    tty_t* tty = get_tty(dev);
+    int len = 0;
+
+    while (size) {
+        char c = *buf++;
+        // 如果遇到\n，根据配置决定是否转换成\r\n
+        if (c == '\n' && (tty->oflags & TTY_OCRLF)) {
+            sem_wait(&tty->osem);
+            int err = tty_fifo_put(&tty->ofifo, '\r');
+            if (err < 0) {
+                break;
+            }
+        }
+
+        // 写入当前字符
+        sem_wait(&tty->osem);
+        int err = tty_fifo_put(&tty->ofifo, c);
+        if (err < 0) {
+            break;
+        }
+
+        len++;
+        size--;
+
+        // 启动输出, 这里是直接由console直接输出，无需中断
+        console_write(tty);
+    }
+
+    return len;
 }
 
 /**
