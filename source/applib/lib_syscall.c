@@ -1,14 +1,10 @@
 /**
  * 系统调用函数
  */
-
 #include "lib_syscall.h"
 #include "core/syscall.h"
 #include "os_cfg.h"
 
-/**
- * 执行系统调用
- */
 static inline int sys_call(syscall_args_t* args)
 {
     const unsigned long sys_gate_addr[] = { 0, SELECTOR_SYSCALL | 0 }; // 使用特权级0
@@ -129,4 +125,35 @@ int lseek(int file, int ptr, int dir)
     args.arg1 = (int)ptr;
     args.arg2 = dir;
     return sys_call(&args);
+}
+
+/**
+ * 获取文件的状态
+ */
+int fstat(int file, struct stat* st)
+{
+    syscall_args_t args;
+    args.id = SYS_fstat;
+    args.arg0 = (int)file;
+    args.arg1 = (int)st;
+    return sys_call(&args);
+}
+
+/**
+ * 判断文件描述符与tty关联
+ */
+int isatty(int file)
+{
+    syscall_args_t args;
+    args.id = SYS_isatty;
+    args.arg0 = (int)file;
+    return sys_call(&args);
+}
+
+void* sbrk(ptrdiff_t incr)
+{
+    syscall_args_t args;
+    args.id = SYS_sbrk;
+    args.arg0 = (int)incr;
+    return (void*)sys_call(&args);
 }

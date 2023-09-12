@@ -11,7 +11,8 @@
 #include <stdarg.h>
 
 // 目标用串口，参考资料：https://wiki.osdev.org/Serial_Ports
-#define COM1_PORT 0x3F8 // RS232端口0初始化
+#define LOG_USE_COM         0
+#define COM1_PORT           0x3F8       // RS232端口0初始化
 
 static mutex_t mutex;
 

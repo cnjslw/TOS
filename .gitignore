@@ -9,4 +9,3 @@ Archiv/
 .gitignore
 newlib/.project
 newlib/*.pdf
-newlib/

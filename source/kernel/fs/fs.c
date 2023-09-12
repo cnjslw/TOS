@@ -100,6 +100,22 @@ int sys_lseek(int file, int ptr, int dir)
 /**
  * 关闭文件
  */
-int sys_close(int file)
-{
+int sys_close(int file) {
+}
+
+
+/**
+ * 判断文件描述符与tty关联
+ */
+int sys_isatty(int file) {
+	return -1;
+}
+
+/**
+ * @brief 获取文件状态
+ */
+int sys_fstat(int file, struct stat *st) {
+    kernel_memset(st, 0, sizeof(struct stat));
+    st->st_size = 0;
+    return 0;
 }
