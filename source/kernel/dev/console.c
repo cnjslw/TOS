@@ -195,25 +195,29 @@ void restore_cursor(console_t* console)
 /**
  * 初始化控制台及键盘
  */
-int console_init(void)
+int console_init(int idx)
 {
     for (int i = 0; i < CONSOLE_NR; i++) {
-        console_t* console = console_buf + i;
+        console_t* console = console_buf + idx;
 
-        console->disp_base = (disp_char_t*)CONSOLE_DISP_ADDR;
+        console->disp_base = (disp_char_t*)CONSOLE_DISP_ADDR + idx * console->display_cols * console->display_rows;
         console->display_cols = CONSOLE_COL_MAX;
         console->display_rows = CONSOLE_ROW_MAX;
 
-        int cursor_pos = read_cursor_pos();
-        console->cursor_row = cursor_pos / console->display_cols;
-        console->cursor_col = cursor_pos % console->display_cols;
-        console->old_cursor_row = console->cursor_row;
-        console->old_cursor_col = console->cursor_col;
         console->foreground = COLOR_White;
         console->background = COLOR_Black;
-
-        // clear_display(console);
-        // update_cursor_pos(console);
+        if (idx == 0) {
+            int cursor_pos = read_cursor_pos();
+            console->cursor_row = cursor_pos / console->display_cols;
+            console->cursor_col = cursor_pos % console->display_cols;
+        } else {
+            console->cursor_row = 0;
+            console->cursor_col = 0;
+            clear_display(console);
+            update_cursor_pos(console);
+        }
+        console->old_cursor_row = console->cursor_row;
+        console->old_cursor_col = console->cursor_col;
     }
 
     return 0;

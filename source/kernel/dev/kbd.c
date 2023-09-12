@@ -232,10 +232,11 @@ static void do_e0_key(uint8_t raw_code)
 void do_handler_kbd(exception_frame_t* frame)
 {
     static enum {
-    	NORMAL,				// 普通，无e0或e1
-		BEGIN_E0,			// 收到e0字符
-		BEGIN_E1,			// 收到e1字符
-    }recv_state = NORMAL;
+        NORMAL, // 普通，无e0或e1
+        BEGIN_E0, // 收到e0字符
+        BEGIN_E1, // 收到e1字符
+    } recv_state
+        = NORMAL;
 
     // 检查是否有数据，无数据则退出
     uint8_t status = inb(KBD_PORT_STAT);
@@ -281,8 +282,11 @@ void do_handler_kbd(exception_frame_t* frame)
  */
 void kbd_init(void)
 {
-    update_led_status();
-
-    irq_install(IRQ1_KEYBOARD, (irq_handler_t)exception_handler_kbd);
-    irq_enable(IRQ1_KEYBOARD);
+    static int inited = 0;
+    if (!inited) {
+        update_led_status();
+        irq_install(IRQ1_KEYBOARD, (irq_handler_t)exception_handler_kbd);
+        irq_enable(IRQ1_KEYBOARD);
+        inited = 1;
+    }
 }

@@ -5,25 +5,28 @@
 #include "comm/cpu_instr.h"
 #include "cpu/irq.h"
 #include "dev/console.h"
+#include "dev/dev.h"
 #include "ipc/mutex.h"
 #include "os_cfg.h"
 #include "tools/klib.h"
 #include <stdarg.h>
 
 // 目标用串口，参考资料：https://wiki.osdev.org/Serial_Ports
-#define LOG_USE_COM         0
-#define COM1_PORT           0x3F8       // RS232端口0初始化
+#define LOG_USE_COM 0
+#define COM1_PORT 0x3F8 // RS232端口0初始化
 
 static mutex_t mutex;
+static int log_dev_id;
 
 /**
  * @brief 初始化日志输出
  */
 void log_init(void)
 {
-#if LOG_USE_COM
-    mutex_init(&mutex);
 
+    mutex_init(&mutex);
+    log_dev_id = dev_open(DEV_TTY, 0, 0);
+#if LOG_USE_COM
     outb(COM1_PORT + 1, 0x00); // Disable all interrupts
     outb(COM1_PORT + 3, 0x80); // Enable DLAB (set baud rate divisor)
     outb(COM1_PORT + 0, 0x03); // Set divisor to 3 (lo byte) 38400 baud
@@ -67,11 +70,11 @@ void log_printf(const char* fmt, ...)
     outb(COM1_PORT, '\n');
 
 #else
-    console_write(0, str_buf, kernel_strlen(str_buf));
-
+    // console_write(0, str_buf, kernel_strlen(str_buf));
+    dev_write(log_dev_id, 0, str_buf, kernel_strlen(str_buf));
     char c = '\n';
-    console_write(0, &c, 1);
+    // console_write(0, &c, 1);
+    dev_write(log_dev_id, 0, &c, 1);
 #endif
-
     mutex_unlock(&mutex);
 }
