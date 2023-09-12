@@ -1,6 +1,7 @@
 /**
  * 任务实现
  */
+
 #ifndef TASK_H
 #define TASK_H
 
@@ -11,15 +12,12 @@
 
 #define TASK_NAME_SIZE 32 // 任务名字长度
 #define TASK_TIME_SLICE_DEFAULT 10 // 时间片计数
-#define TASK_OFILE_NR 128 // 进程可以打开的最大文件数
+#define TASK_OFILE_NR 128 // 最多支持打开的文件数量
 
 #define TASK_FLAG_SYSTEM (1 << 0) // 系统任务
 
-/**
- * @brief 任务参数
- */
 typedef struct _task_args_t {
-    uint32_t ret_addr;
+    uint32_t ret_addr; // 返回地址，无用
     uint32_t argc;
     char** argv;
 } task_args_t;
@@ -46,7 +44,8 @@ typedef struct _task_t {
     int sleep_ticks; // 睡眠时间
     int time_slice; // 时间片
     int slice_ticks; // 递减时间片计数
-    file_t* file_table[TASK_OFILE_NR]; // 进程打开的文件描述符
+
+    file_t* file_table[TASK_OFILE_NR]; // 任务最多打开的文件数量
 
     tss_t tss; // 任务的TSS段
     uint16_t tss_sel; // tss选择子

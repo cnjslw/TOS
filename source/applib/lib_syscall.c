@@ -1,10 +1,13 @@
 /**
- * 系统调用函数
+ * 系统调用接口
  */
 #include "lib_syscall.h"
 #include "core/syscall.h"
 #include "os_cfg.h"
 
+/**
+ * 执行系统调用
+ */
 static inline int sys_call(syscall_args_t* args)
 {
     const unsigned long sys_gate_addr[] = { 0, SELECTOR_SYSCALL | 0 }; // 使用特权级0
@@ -156,4 +159,12 @@ void* sbrk(ptrdiff_t incr)
     args.id = SYS_sbrk;
     args.arg0 = (int)incr;
     return (void*)sys_call(&args);
+}
+
+int dup(int file)
+{
+    syscall_args_t args;
+    args.id = SYS_dup;
+    args.arg0 = file;
+    return sys_call(&args);
 }

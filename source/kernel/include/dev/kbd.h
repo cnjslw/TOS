@@ -1,3 +1,7 @@
+/**
+ * 键盘设备处理
+ */
+
 #ifndef KBD_H
 #define KBD_H
 

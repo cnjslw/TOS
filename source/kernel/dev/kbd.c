@@ -1,9 +1,11 @@
 /**
- * 键盘初始化
+ * 键盘设备处理
  */
+
 #include "dev/kbd.h"
 #include "comm/cpu_instr.h"
 #include "cpu/irq.h"
+#include "dev/tty.h"
 #include "tools/klib.h"
 #include "tools/log.h"
 
@@ -28,7 +30,7 @@ static const key_map_t map_table[256] = {
     [0x0B] = { '0', ')' },
     [0x0C] = { '-', '_' },
     [0x0D] = { '=', '+' },
-    [0x0E] = { '\b', '\b' },
+    [0x0E] = { ASCII_DEL, ASCII_DEL },
     [0x0F] = { '\t', '\t' },
     [0x10] = { 'q', 'Q' },
     [0x11] = { 'w', 'W' },
@@ -200,7 +202,8 @@ static void do_normal_key(uint8_t raw_code)
             }
 
             // 最后，不管是否是控制字符，都会被写入
-            log_printf("key=%c", key);
+            // log_printf("key=%c", key);
+            tty_in(0, key);
         }
         break;
     }
@@ -283,10 +286,13 @@ void do_handler_kbd(exception_frame_t* frame)
 void kbd_init(void)
 {
     static int inited = 0;
+
     if (!inited) {
         update_led_status();
+
         irq_install(IRQ1_KEYBOARD, (irq_handler_t)exception_handler_kbd);
         irq_enable(IRQ1_KEYBOARD);
+
         inited = 1;
     }
 }

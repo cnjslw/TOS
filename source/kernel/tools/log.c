@@ -1,6 +1,7 @@
 /**
  * 日志输出
  */
+
 #include "tools/log.h"
 #include "comm/cpu_instr.h"
 #include "cpu/irq.h"
@@ -23,9 +24,10 @@ static int log_dev_id;
  */
 void log_init(void)
 {
-
     mutex_init(&mutex);
+
     log_dev_id = dev_open(DEV_TTY, 0, 0);
+
 #if LOG_USE_COM
     outb(COM1_PORT + 1, 0x00); // Disable all interrupts
     outb(COM1_PORT + 3, 0x80); // Enable DLAB (set baud rate divisor)
@@ -68,13 +70,14 @@ void log_printf(const char* fmt, ...)
 
     outb(COM1_PORT, '\r');
     outb(COM1_PORT, '\n');
-
 #else
     // console_write(0, str_buf, kernel_strlen(str_buf));
     dev_write(log_dev_id, 0, str_buf, kernel_strlen(str_buf));
+
     char c = '\n';
     // console_write(0, &c, 1);
     dev_write(log_dev_id, 0, &c, 1);
+
 #endif
     mutex_unlock(&mutex);
 }

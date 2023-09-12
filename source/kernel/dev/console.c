@@ -1,12 +1,12 @@
 /**
- * 控制台设备
- * 支持VGA
+ * 终端显示部件
+ * 参考资料：https://wiki.osdev.org/Printing_To_Screen
  */
 #include "dev/console.h"
 #include "comm/cpu_instr.h"
 #include "tools/klib.h"
 
-#define CONSOLE_NR 1 // 控制台的数量
+#define CONSOLE_NR 8 // 控制台的数量
 
 static console_t console_buf[CONSOLE_NR];
 
@@ -197,29 +197,27 @@ void restore_cursor(console_t* console)
  */
 int console_init(int idx)
 {
-    for (int i = 0; i < CONSOLE_NR; i++) {
-        console_t* console = console_buf + idx;
+    console_t* console = console_buf + idx;
 
-        console->disp_base = (disp_char_t*)CONSOLE_DISP_ADDR + idx * console->display_cols * console->display_rows;
-        console->display_cols = CONSOLE_COL_MAX;
-        console->display_rows = CONSOLE_ROW_MAX;
+    console->display_cols = CONSOLE_COL_MAX;
+    console->display_rows = CONSOLE_ROW_MAX;
+    console->disp_base = (disp_char_t*)CONSOLE_DISP_ADDR + idx * console->display_cols * console->display_rows;
 
-        console->foreground = COLOR_White;
-        console->background = COLOR_Black;
-        if (idx == 0) {
-            int cursor_pos = read_cursor_pos();
-            console->cursor_row = cursor_pos / console->display_cols;
-            console->cursor_col = cursor_pos % console->display_cols;
-        } else {
-            console->cursor_row = 0;
-            console->cursor_col = 0;
-            clear_display(console);
-            update_cursor_pos(console);
-        }
-        console->old_cursor_row = console->cursor_row;
-        console->old_cursor_col = console->cursor_col;
+    console->foreground = COLOR_White;
+    console->background = COLOR_Black;
+    if (idx == 0) {
+        int cursor_pos = read_cursor_pos();
+        console->cursor_row = cursor_pos / console->display_cols;
+        console->cursor_col = cursor_pos % console->display_cols;
+    } else {
+        console->cursor_row = 0;
+        console->cursor_col = 0;
+        clear_display(console);
+        update_cursor_pos(console);
     }
 
+    console->old_cursor_row = console->cursor_row;
+    console->old_cursor_col = console->cursor_col;
     return 0;
 }
 
@@ -257,7 +255,7 @@ static void write_normal(console_t* console, char c)
     case '\r':
         move_to_col0(console);
         break;
-    case '\n':
+    case '\n': // 暂时这样处理
         // move_to_col0(console);
         move_next_line(console);
         break;

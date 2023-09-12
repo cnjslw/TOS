@@ -1,3 +1,7 @@
+/**
+ * 终端显示部件
+ */
+
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
@@ -73,4 +77,4 @@ int console_init(int idx);
 int console_write(tty_t* tty);
 void console_close(int dev);
 
-#endif
+#endif /* SRC_UI_TTY_WIDGET_H_ */

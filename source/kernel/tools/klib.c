@@ -1,6 +1,7 @@
 /**
  * 一些字符串的处理函数
  */
+
 #include "tools/klib.h"
 #include "comm/cpu_instr.h"
 #include "tools/log.h"
@@ -11,6 +12,7 @@
 int strings_count(char** start)
 {
     int count = 0;
+
     if (start) {
         while (*start++) {
             count++;
@@ -20,14 +22,18 @@ int strings_count(char** start)
 }
 
 /**
- * @brief 从路径中解析文件名
+ * @brief 从路径中解释文件名
  */
 char* get_file_name(char* name)
 {
     char* s = name;
+
+    // 定位到结束符
     while (*s != '\0') {
         s++;
     }
+
+    // 反向搜索，直到找到反斜杆或者到文件开头
     while ((*s != '\\') && (*s != '/') && (s >= name)) {
         s--;
     }

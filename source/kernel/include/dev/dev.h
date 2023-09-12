@@ -1,21 +1,26 @@
 /**
  * 设备接口
+ * 参考资料：https://wiki.osdev.org/Printing_To_Screen
  */
 
 #ifndef DEV_H
 #define DEV_H
 
 #include "comm/types.h"
-#define DEV_NAME_SIZE 32
-enum { DEV_UNKOWN = 0,
-    DEV_TTY,
+
+#define DEV_NAME_SIZE 32 // 设备名称长度
+
+enum {
+    DEV_UNKNOWN = 0, // 未知类型
+    DEV_TTY, // TTY设备
 };
 
 struct _dev_desc_t;
 
 /**
- * @brief 设备驱动接口,描述特定设备,比如小米手机
+ * @brief 设备驱动接口
  */
+struct _dev_desc_t;
 typedef struct _device_t {
     struct _dev_desc_t* desc; // 设备特性描述符
     int mode; // 操作模式
@@ -25,7 +30,7 @@ typedef struct _device_t {
 } device_t;
 
 /**
- * @brief 设备描述结构,比如手机
+ * @brief 设备描述结构
  */
 typedef struct _dev_desc_t {
     char name[DEV_NAME_SIZE]; // 设备名称
@@ -36,7 +41,6 @@ typedef struct _dev_desc_t {
     int (*write)(device_t* dev, int addr, char* buf, int size);
     int (*control)(device_t* dev, int cmd, int arg0, int arg1);
     void (*close)(device_t* dev);
-
 } dev_desc_t;
 
 int dev_open(int major, int minor, void* data);
@@ -45,4 +49,4 @@ int dev_write(int dev_id, int addr, char* buf, int size);
 int dev_control(int dev_id, int cmd, int arg0, int arg1);
 void dev_close(int dev_id);
 
-#endif
+#endif // DEV_H

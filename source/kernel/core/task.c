@@ -106,12 +106,12 @@ int task_init(task_t* task, const char* name, int flag, uint32_t entry, uint32_t
     list_node_init(&task->run_node);
     list_node_init(&task->wait_node);
 
+    // 文件相关
     kernel_memset(task->file_table, 0, sizeof(task->file_table));
 
     // 插入就绪队列中和所有的任务队列中
     irq_state_t state = irq_enter_protection();
     task->pid = (uint32_t)task; // 使用地址，能唯一
-    // task_set_ready(task);
     list_insert_last(&task_manager.task_list, &task->all_node);
     irq_leave_protection(state);
     return 0;
@@ -197,6 +197,7 @@ void task_first_init(void)
 
     // 启动进程
     task_start(&task_manager.first_task);
+
     // 写TR寄存器，指示当前运行的第一个任务
     write_tr(task_manager.first_task.tss_sel);
 }
@@ -322,14 +323,15 @@ task_t* task_current(void)
 }
 
 /**
- * @brief 获取当前任务的指定文件描述符
+ * @brief 获取当前进程指定的文件描述符
  */
 file_t* task_file(int fd)
 {
-    if ((fd >= 0) && (fd <= TASK_OFILE_NR)) {
+    if ((fd >= 0) && (fd < TASK_OFILE_NR)) {
         file_t* file = task_current()->file_table[fd];
         return file;
     }
+
     return (file_t*)0;
 }
 
@@ -339,16 +341,21 @@ file_t* task_file(int fd)
 int task_alloc_fd(file_t* file)
 {
     task_t* task = task_current();
+
     for (int i = 0; i < TASK_OFILE_NR; i++) {
         file_t* p = task->file_table[i];
-        if (p = (file_t*)0) {
+        if (p == (file_t*)0) {
             task->file_table[i] = file;
             return i;
         }
     }
+
     return -1;
 }
 
+/**
+ * @brief 移除任务中打开的文件fd
+ */
 void task_remove_fd(int fd)
 {
     if ((fd >= 0) && (fd < TASK_OFILE_NR)) {
@@ -545,15 +552,6 @@ fork_failed:
 }
 
 /**
- * 返回任务的pid
- */
-int sys_getpid(void)
-{
-    task_t* curr_task = task_current();
-    return curr_task->pid;
-}
-
-/**
  * @brief 加载一个程序表头的数据到内存中
  */
 static int load_phdr(int file, Elf32_Phdr* phdr, uint32_t page_dir)
@@ -602,7 +600,7 @@ static int load_phdr(int file, Elf32_Phdr* phdr, uint32_t page_dir)
 }
 
 /**
- * @brief 加载elf文件到内存
+ * @brief 加载elf文件到内存中
  */
 static uint32_t load_elf_file(task_t* task, const char* name, uint32_t page_dir)
 {
@@ -670,7 +668,7 @@ static uint32_t load_elf_file(task_t* task, const char* name, uint32_t page_dir)
             goto load_failed;
         }
 
-        // 最后的地址为bss的地址
+        // 简单起见，不检查了，以最后的地址为bss的地址
         task->heap_start = elf_phdr.p_vaddr + elf_phdr.p_memsz;
         task->heap_end = task->heap_start;
     }
@@ -725,22 +723,25 @@ static int copy_args(char* to, uint32_t page_dir, int argc, char** argv)
 
 /**
  * @brief 加载一个进程
+ * 这个比较复杂，argv/name/env都是原进程空间中的数据，execve中涉及到页表的切换
+ * 在对argv和name进行处理时，会涉及到不同进程空间中数据的传递。
  */
 int sys_execve(char* name, char** argv, char** env)
 {
     task_t* task = task_current();
 
-    // 在页表切换之前将参数从进程中取出
+    // 后面会切换页表，所以先处理需要从进程空间取数据的情况
     kernel_strncpy(task->name, get_file_name(name), TASK_NAME_SIZE);
 
-    // 为应用准备页表
+    // 现在开始加载了，先准备应用页表，由于所有操作均在内核区中进行，所以可以直接先切换到新页表
     uint32_t old_page_dir = task->tss.cr3;
     uint32_t new_page_dir = memory_create_uvm();
     if (!new_page_dir) {
         goto exec_failed;
     }
-    // 加载elf文件到内存中,放在开启新页表的后面
-    uint32_t entry = load_elf_file(task, name, new_page_dir);
+
+    // 加载elf文件到内存中。要放在开启新页表之后，这样才能对相应的内存区域写
+    uint32_t entry = load_elf_file(task, name, new_page_dir); // 暂时置用task->name表示
     if (entry == 0) {
         goto exec_failed;
     }
@@ -761,24 +762,48 @@ int sys_execve(char* name, char** argv, char** env)
         goto exec_failed;
     }
 
-    // 准备环境变量
+    // 加载完毕，为程序的执行做必要准备
+    // 注意，exec的作用是替换掉当前进程，所以只要改变当前进程的执行流即可
+    // 当该进程恢复运行时，像完全重新运行一样，所以用户栈要设置成初始模式
+    // 运行地址要设备成整个程序的入口地址
     syscall_frame_t* frame = (syscall_frame_t*)(task->tss.esp0 - sizeof(syscall_frame_t));
     frame->eip = entry;
     frame->eax = frame->ebx = frame->ecx = frame->edx = 0;
     frame->esi = frame->edi = frame->ebp = 0;
-    frame->eflags = EFLAGS_DEFAULT | EFLAGS_IF;
+    frame->eflags = EFLAGS_DEFAULT | EFLAGS_IF; // 段寄存器无需修改
+
+    // 内核栈不用设置，保持不变，后面调用memory_destroy_uvm并不会销毁内核栈的映射。
+    // 但用户栈需要更改, 同样要加上调用门的参数压栈空间
     frame->esp = stack_top - sizeof(uint32_t) * SYSCALL_PARAM_COUNT;
 
     // 切换到新的页表
     task->tss.cr3 = new_page_dir;
-    mmu_set_page_dir(new_page_dir);
-    memory_destroy_uvm(old_page_dir);
+    mmu_set_page_dir(new_page_dir); // 切换至新的页表。由于不用访问原栈及数据，所以并无问题
+
+    // 调整页表，切换成新的，同时释放掉之前的
+    // 当前使用的是内核栈，而内核栈并未映射到进程地址空间中，所以下面的释放没有问题
+    memory_destroy_uvm(old_page_dir); // 再释放掉了原进程的内容空间
+
+    // 当从系统调用中返回时，将切换至新进程的入口地址运行，并且进程能够获取参数
+    // 注意，如果用户栈设置不当，可能导致返回后运行出现异常。可在gdb中使用nexti单步观察运行流程
     return 0;
-exec_failed:
+
+exec_failed: // 必要的资源释放
     if (new_page_dir) {
+        // 有页表空间切换，切换至旧页表，销毁新页表
         task->tss.cr3 = old_page_dir;
         mmu_set_page_dir(old_page_dir);
         memory_destroy_uvm(new_page_dir);
     }
+
     return -1;
+}
+
+/**
+ * 返回任务的pid
+ */
+int sys_getpid(void)
+{
+    task_t* curr_task = task_current();
+    return curr_task->pid;
 }

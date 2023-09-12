@@ -1,17 +1,21 @@
 /**
- * 文件系统
+ * 文件系统相关接口的实现
  */
 
 #include "fs/file.h"
 #include "ipc/mutex.h"
 #include "tools/klib.h"
 
-static file_t file_table[FILE_TABLE_SIZE]; // 系统维护的文件描述符
-static mutex_t file_alloc_mutex; // 全局文件描述符表访问锁
+static file_t file_table[FILE_TABLE_SIZE]; // 系统中可打开的文件表
+static mutex_t file_alloc_mutex; // 访问file_table的互斥信号量
 
+/**
+ * @brief 分配一个文件描述符
+ */
 file_t* file_alloc(void)
 {
     file_t* file = (file_t*)0;
+
     mutex_lock(&file_alloc_mutex);
     for (int i = 0; i < FILE_TABLE_SIZE; i++) {
         file_t* p_file = file_table + i;
@@ -43,6 +47,7 @@ void file_free(file_t* file)
  */
 void file_table_init(void)
 {
+    // 文件描述符表初始化
     kernel_memset(&file_table, 0, sizeof(file_table));
     mutex_init(&file_alloc_mutex);
 }

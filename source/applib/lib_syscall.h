@@ -6,8 +6,8 @@
 
 #include "core/syscall.h"
 #include "os_cfg.h"
-#include <sys/stat.h>
 
+#include <sys/stat.h>
 typedef struct _syscall_args_t {
     int id;
     int arg0;
@@ -31,5 +31,6 @@ int lseek(int file, int ptr, int dir);
 int isatty(int file);
 int fstat(int file, struct stat* st);
 void* sbrk(ptrdiff_t incr);
+int dup(int file);
 
-#endif
+#endif // LIB_SYSCALL_H
