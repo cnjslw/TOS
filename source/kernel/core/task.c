@@ -99,12 +99,14 @@ int task_init(task_t* task, const char* name, int flag, uint32_t entry, uint32_t
     task->sleep_ticks = 0;
     task->time_slice = TASK_TIME_SLICE_DEFAULT;
     task->slice_ticks = task->time_slice;
-    task->parent = (task_t *)0;
+    task->parent = (task_t*)0;
     task->heap_start = 0;
     task->heap_end = 0;
     list_node_init(&task->all_node);
     list_node_init(&task->run_node);
     list_node_init(&task->wait_node);
+
+    kernel_memset(task->file_table, 0, sizeof(task->file_table));
 
     // 插入就绪队列中和所有的任务队列中
     irq_state_t state = irq_enter_protection();
@@ -182,7 +184,7 @@ void task_first_init(void)
     // 第一个任务代码量小一些，好和栈放在1个页面呢
     // 这样就不要立即考虑还要给栈分配空间的问题
     task_init(&task_manager.first_task, "first task", 0, first_start, first_start + alloc_size);
-    task_manager.first_task.heap_start = (uint32_t)e_first_task;  // 这里不对
+    task_manager.first_task.heap_start = (uint32_t)e_first_task; // 这里不对
     task_manager.first_task.heap_end = task_manager.first_task.heap_start;
     task_manager.curr_task = &task_manager.first_task;
 
@@ -317,6 +319,41 @@ void task_set_wakeup(task_t* task)
 task_t* task_current(void)
 {
     return task_manager.curr_task;
+}
+
+/**
+ * @brief 获取当前任务的指定文件描述符
+ */
+file_t* task_file(int fd)
+{
+    if ((fd >= 0) && (fd <= TASK_OFILE_NR)) {
+        file_t* file = task_current()->file_table[fd];
+        return file;
+    }
+    return (file_t*)0;
+}
+
+/**
+ * @brief 为指定的file分配一个新的文件id
+ */
+int task_alloc_fd(file_t* file)
+{
+    task_t* task = task_current();
+    for (int i = 0; i < TASK_OFILE_NR; i++) {
+        file_t* p = task->file_table[i];
+        if (p = (file_t*)0) {
+            task->file_table[i] = file;
+            return i;
+        }
+    }
+    return -1;
+}
+
+void task_remove_fd(int fd)
+{
+    if ((fd >= 0) && (fd < TASK_OFILE_NR)) {
+        task_current()->file_table[fd] = (file_t*)0;
+    }
 }
 
 /**
@@ -636,7 +673,7 @@ static uint32_t load_elf_file(task_t* task, const char* name, uint32_t page_dir)
         // 最后的地址为bss的地址
         task->heap_start = elf_phdr.p_vaddr + elf_phdr.p_memsz;
         task->heap_end = task->heap_start;
-   }
+    }
 
     sys_close(file);
     return elf_hdr.e_entry;
