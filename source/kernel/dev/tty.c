@@ -3,12 +3,14 @@
  */
 
 #include "dev/tty.h"
+#include "cpu/irq.h"
 #include "dev/console.h"
 #include "dev/dev.h"
 #include "dev/kbd.h"
 #include "tools/log.h"
 
 static tty_t tty_devs[TTY_NR];
+static int cur_tty = 0;
 
 /**
  * @brief FIFO初始化
@@ -30,12 +32,14 @@ int tty_fifo_get(tty_fifo_t* fifo, char* c)
         return -1;
     }
 
-    *c = fifo->buf[fifo->read++];
-    if (fifo->read >= fifo->size) {
-        fifo->read = 0;
-    }
-    fifo->count--;
-    return 0;
+	irq_state_t state = irq_enter_protection();
+	*c = fifo->buf[fifo->read++];
+	if (fifo->read >= fifo->size) {
+		fifo->read = 0;
+	}
+	fifo->count--;
+	irq_leave_protection(state);
+	return 0;
 }
 
 /**
@@ -47,11 +51,13 @@ int tty_fifo_put(tty_fifo_t* fifo, char c)
         return -1;
     }
 
+    irq_state_t state = irq_enter_protection();
     fifo->buf[fifo->write++] = c;
     if (fifo->write >= fifo->size) {
         fifo->write = 0;
     }
     fifo->count++;
+    irq_leave_protection(state);
 
     return 0;
 }
@@ -89,7 +95,7 @@ int tty_open(device_t* dev)
 
     tty->iflags = TTY_INLCR | TTY_IECHO;
     tty->oflags = TTY_OCRLF;
-    tty->console_idx = 0;
+    tty->console_idx = idx;
 
     kbd_init();
     console_init(idx);
@@ -211,9 +217,9 @@ void tty_close(device_t* dev)
 /**
  * @brief 输入tty字符
  */
-void tty_in(int idx, char ch)
+void tty_in(char ch)
 {
-    tty_t* tty = tty_devs + idx;
+    tty_t* tty = tty_devs + cur_tty;
     // 辅助队列要有空闲空间可代写入
     if (sem_count(&tty->isem) >= TTY_IBUF_SIZE) {
         return;
@@ -222,6 +228,17 @@ void tty_in(int idx, char ch)
     // 写入辅助队列，通知数据到达
     tty_fifo_put(&tty->ififo, ch);
     sem_notify(&tty->isem);
+}
+
+/**
+ * @brief 选择TTY
+ */
+void tty_select(int tty)
+{
+    if (tty != cur_tty) {
+        console_select(tty);
+        cur_tty = tty;
+    }
 }
 
 // 设备描述表: 描述一个设备所具备的特性

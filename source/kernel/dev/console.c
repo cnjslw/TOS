@@ -4,23 +4,26 @@
  */
 #include "dev/console.h"
 #include "comm/cpu_instr.h"
+#include "cpu/irq.h"
+#include "dev/tty.h"
 #include "tools/klib.h"
 
 #define CONSOLE_NR 8 // 控制台的数量
 
 static console_t console_buf[CONSOLE_NR];
-
+static int cur_console_idx = 0;
 /**
  * @brief 读取当前光标的位置
  */
 static int read_cursor_pos(void)
 {
     int pos;
-
+    irq_state_t state = irq_enter_protection();
     outb(0x3D4, 0x0F); // 写低地址
     pos = inb(0x3D5);
     outb(0x3D4, 0x0E); // 写高地址
     pos |= inb(0x3D5) << 8;
+    irq_leave_protection(state);
     return pos;
 }
 
@@ -29,12 +32,37 @@ static int read_cursor_pos(void)
  */
 static void update_cursor_pos(console_t* console)
 {
-    uint16_t pos = console->cursor_row * console->display_cols + console->cursor_col;
+    uint16_t pos = (console - console_buf) * (console->display_cols * console->display_rows);
+    pos += console->cursor_row * console->display_cols + console->cursor_col;
 
+    irq_state_t state = irq_enter_protection();
     outb(0x3D4, 0x0F); // 写低地址
     outb(0x3D5, (uint8_t)(pos & 0xFF));
     outb(0x3D4, 0x0E); // 写高地址
     outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+    irq_leave_protection(state);
+}
+
+/**
+ * @brief 终端选择
+ */
+void console_select(int idx)
+{
+    console_t* console = console_buf + idx;
+    if (console->disp_base == 0) {
+        console_init(idx);
+    }
+
+    uint16_t pos = idx * console->display_cols * console->display_rows;
+
+    outb(0x3D4, 0xC); // 写高地址
+    outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+    outb(0x3D4, 0xD); // 写低地址
+    outb(0x3D5, (uint8_t)(pos & 0xFF));
+
+    // 更新光标到当前屏幕
+    cur_console_idx = idx;
+    update_cursor_pos(console);
 }
 
 /**
@@ -213,7 +241,7 @@ int console_init(int idx)
         console->cursor_row = 0;
         console->cursor_col = 0;
         clear_display(console);
-        update_cursor_pos(console);
+        // update_cursor_pos(console);
     }
 
     console->old_cursor_row = console->cursor_row;
@@ -466,7 +494,9 @@ int console_write(tty_t* tty)
         len++;
     } while (1);
 
-    update_cursor_pos(console);
+    if (tty->console_idx == cur_console_idx) {
+        update_cursor_pos(console);
+    }
     return len;
 }
 
