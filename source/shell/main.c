@@ -4,7 +4,9 @@
 
 #include "main.h"
 #include "lib_syscall.h"
+#include <getopt.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static cli_t cli;
@@ -34,12 +36,100 @@ static int do_help(int argc, char** argv)
     return 0;
 }
 
+/**
+ * @brief 清屏命令
+ */
+static int do_clear(int argc, char** argv)
+{
+    printf("%s", ESC_CLEAR_SCREEN);
+    printf("%s", ESC_MOVE_CURSOR(0, 0));
+    return 0;
+}
+
+/**
+ * @brief 回显命令
+ */
+static int do_echo(int argc, char** argv)
+{
+    if (argc == 1) {
+        char msg_buf[128];
+        fgets(msg_buf, sizeof(msg_buf), stdin);
+        msg_buf[sizeof(msg_buf) - 1] = '\0';
+        puts(msg_buf);
+        return 0;
+    }
+
+    int count = 1;
+    int ch;
+    /*
+    这个函数调用是使用getopt函数来解析命令行参数。
+    argc：表示命令行参数的数量，即argv数组的大小。
+    argv：是一个指向字符串数组的指针，其中包含命令行参数的值。
+    "n:h"：是一个字符串，用于指定程序所支持的选项。每个字符代表一个短选项。在这个例子中，"n:h"表示程序支持两个选项，即-n和-h。
+
+    getopt函数将逐个检查命令行参数，并根据指定的选项规则进行解析。
+    它会返回下一个找到的选项字符，并更新内部状态以跟踪已解析的选项和参数。
+
+    返回值:
+    如果找到下一个选项字符，则返回该字符。
+    如果所有选项都已解析完毕，则返回-1。
+    如果遇到未识别的选项字符，则返回?。
+    并通过全局变量optarg保存当前选项的参数（如果有的话）。
+    getopt(argc, argv, "n:h")用于解析命令行参数。
+    它会循环调用getopt函数，每次迭代时都会处理下一个选项或参数，
+    并根据不同的选项执行相应的操作。
+    */
+    while ((ch = getopt(argc, argv, "n:h")) != -1) {
+        switch (ch) {
+        case 'h':
+            puts("echo echo any message");
+            puts("Usage: echo [-n count] msg");
+            optind = 1; // getopt需要多次调用，需要重置
+            return 0;
+        case 'n':
+            count = atoi(optarg);
+            break;
+        case '?':
+            if (optarg) {
+                fprintf(stderr, "Unknown option: -%s\n", optarg);
+            }
+            optind = 1; // getopt需要多次调用，需要重置
+            return -1;
+        }
+    }
+
+    // 索引已经超过了最后一个参数的位置，意味着没有传入要发送的信息
+    if (optind > argc - 1) {
+        fprintf(stderr, "Message is empty \n");
+        optind = 1; // getopt需要多次调用，需要重置
+        return -1;
+    }
+
+    // 循环打印消息
+    char* msg = argv[optind];
+    for (int i = 0; i < count; i++) {
+        puts(msg);
+    }
+    optind = 1; // getopt需要多次调用，需要重置
+    return 0;
+}
+
 // 命令列表
 static const cli_cmd_t cmd_list[] = {
     {
         .name = "help",
         .useage = "help -- list support command",
         .do_func = do_help,
+    },
+    {
+        .name = "clear",
+        .useage = "clear -- clear the screen",
+        .do_func = do_clear,
+    },
+    {
+        .name = "echo",
+        .useage = "echo [-n count] msg -- echo something",
+        .do_func = do_echo,
     },
 };
 
@@ -79,7 +169,7 @@ static void run_builtin(const cli_cmd_t* cmd, int argc, char** argv)
 {
     int ret = cmd->do_func(argc, argv);
     if (ret < 0) {
-        fprintf(stderr, "error: %d\n", ret);
+        fprintf(stderr, ESC_COLOR_ERROR "error: %d\n" ESC_COLOR_DEFAULT, ret);
     }
 }
 
@@ -144,18 +234,19 @@ int main(int argc, char** argv)
             continue;
         }
 
-        // 测试程序，运行虚拟的程序
-        // run_exec_file("", argc, argv);
-
-        // 试图作为外部命令执行。只检查文件是否存在，不考虑是否可执行
-        // const char * path = find_exec_path(argv[0]);
-        // if (path) {
-        //     run_exec_file(path, argc, argv);
-        //     continue;
-        // }
-
         // 找不到命令，提示错误
-        fprintf(stderr, "Unknown command: %s\n", cli.curr_input);
+        fprintf(stderr, ESC_COLOR_ERROR "Unknown command: %s\n" ESC_COLOR_DEFAULT, cli.curr_input);
+        /*
+        \x1b[31m 这个字符序列是用来控制终端输出文本颜色的 ANSI 转义序列。具体解释如下：
+        \x1b：这是 ASCII 转义字符，表示将要开始一个转义序列。
+        [：指定转义序列的开始。
+        31：表示选择颜色的代码。在 ANSI 转义序列中，31对应红色。
+        m：表示转义序列的结束。
+        当终端遇到这个转义序列时，它会将后续的文本内容呈现为红色。
+        在命令行中，如果你使用这个字符序列作为一部分的输出，终端会解析并根据其后的文本显示红色。例如：
+        printf("\x1b[31mThis text is red.\x1b[0m");
+        上述代码会将 "This text is red." 的文本显示为红色。\x1b[0m 是另一个转义序列，用于恢复默认的文本颜色和样式。
+        */
     }
 
     return 0;

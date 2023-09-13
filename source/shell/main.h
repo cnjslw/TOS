@@ -7,6 +7,12 @@
 #define CLI_INPUT_SIZE 1024 // 输入缓存
 #define CLI_MAX_ARG_COUNT 10 // 最大输入参数
 
+#define ESC_CMD2(Pn, cmd)		    "\x1b["#Pn#cmd
+#define	ESC_COLOR_ERROR			    ESC_CMD2(31, m)	// 红色错误
+#define	ESC_COLOR_DEFAULT		    ESC_CMD2(39, m)	// 默认颜色
+#define ESC_CLEAR_SCREEN		    ESC_CMD2(2, J)	// 擦除整屏幕
+#define	ESC_MOVE_CURSOR(row, col)  "\x1b["#row";"#col"H"
+
 /**
  * @brief 具体命令的名称,使用方法
  */
