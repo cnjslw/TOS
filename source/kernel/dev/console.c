@@ -246,6 +246,8 @@ int console_init(int idx)
 
     console->old_cursor_row = console->cursor_row;
     console->old_cursor_col = console->cursor_col;
+
+    mutex_init(&console->mutex);
     return 0;
 }
 
@@ -467,6 +469,7 @@ int console_write(tty_t* tty)
 {
     console_t* console = console_buf + tty->console_idx;
 
+    mutex_lock(&console->mutex);
     int len = 0;
     do {
         char c;
@@ -494,9 +497,9 @@ int console_write(tty_t* tty)
         len++;
     } while (1);
 
-    if (tty->console_idx == cur_console_idx) {
-        update_cursor_pos(console);
-    }
+    mutex_unlock(&console->mutex);
+
+    update_cursor_pos(console);
     return len;
 }
 

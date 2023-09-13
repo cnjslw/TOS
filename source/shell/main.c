@@ -114,6 +114,15 @@ static int do_echo(int argc, char** argv)
     return 0;
 }
 
+/**
+ * @brief 程序退出命令
+ */
+static int do_exit(int argc, char** argv)
+{
+    exit(0);
+    return 0;
+}
+
 // 命令列表
 static const cli_cmd_t cmd_list[] = {
     {
@@ -131,6 +140,11 @@ static const cli_cmd_t cmd_list[] = {
         .useage = "echo [-n count] msg -- echo something",
         .do_func = do_echo,
     },
+    {
+        .name = "quit",
+        .useage = "quit from shell",
+        .do_func = do_exit,
+    }
 };
 
 /**
@@ -170,6 +184,27 @@ static void run_builtin(const cli_cmd_t* cmd, int argc, char** argv)
     int ret = cmd->do_func(argc, argv);
     if (ret < 0) {
         fprintf(stderr, ESC_COLOR_ERROR "error: %d\n" ESC_COLOR_DEFAULT, ret);
+    }
+}
+
+/**
+ * @brief 运行当前文件
+ */
+static void run_exec_file(const char* path, int argc, char** argv)
+{
+    int pid = fork();
+    if (pid < 0) {
+        fprintf(stderr, "fork failed: %s", path);
+    } else if (pid == 0) {
+        for (int i = 0; i < argc; i++) {
+            msleep(1000);
+            printf("arg %d = %s \n", i, argv[i]);
+        }
+        exit(-1);
+    } else {
+        int status;
+        int pid = wait(&status);
+        fprintf(stderr, "cmd %s result: %d, pid = %d\n", path, status, pid);
     }
 }
 
@@ -233,6 +268,8 @@ int main(int argc, char** argv)
             run_builtin(cmd, argc, argv);
             continue;
         }
+        // Test
+        run_exec_file("", argc, argv);
 
         // 找不到命令，提示错误
         fprintf(stderr, ESC_COLOR_ERROR "Unknown command: %s\n" ESC_COLOR_DEFAULT, cli.curr_input);

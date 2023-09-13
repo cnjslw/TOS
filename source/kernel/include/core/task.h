@@ -32,6 +32,7 @@ typedef struct _task_t {
         TASK_SLEEP,
         TASK_READY,
         TASK_WAITING,
+        TASK_ZOMBIE,
     } state;
 
     char name[TASK_NAME_SIZE]; // 任务名字
@@ -40,6 +41,7 @@ typedef struct _task_t {
     struct _task_t* parent; // 父进程
     uint32_t heap_start; // 堆的顶层地址
     uint32_t heap_end; // 堆结束地址
+    int status; // 执行结果
 
     int sleep_ticks; // 睡眠时间
     int time_slice; // 时间片
@@ -91,5 +93,7 @@ task_t* task_first_task(void);
 int sys_getpid(void);
 int sys_fork(void);
 int sys_execve(char* name, char** argv, char** env);
+void sys_exit(int status);
+int sys_wait(int* status);
 
 #endif

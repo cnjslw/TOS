@@ -75,11 +75,37 @@ int execve(const char* name, char* const* argv, char* const* env)
     return sys_call(&args);
 }
 
+/**
+ * @brief 主动让出CPU
+ */
 int yield(void)
 {
     syscall_args_t args;
     args.id = SYS_yield;
     return sys_call(&args);
+}
+
+/**
+ * @brief 任务等待
+ */
+int wait(int* status)
+{
+    syscall_args_t args;
+    args.id = SYS_wait;
+    args.arg0 = (int)status;
+    return sys_call(&args);
+}
+
+/**
+ * @brief 进程退出
+ */
+void _exit(int status)
+{
+    syscall_args_t args;
+    args.id = SYS_exit;
+    args.arg0 = (int)status;
+    sys_call(&args);
+    for (;;) { }
 }
 
 int open(const char* name, int flags, ...)

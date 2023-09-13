@@ -20,5 +20,5 @@ void cstart(int argc, char** argv)
         *start++ = 0;
     }
 
-    main(argc, argv);
+    exit(main(argc, argv));
 }
