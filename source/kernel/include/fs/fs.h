@@ -5,9 +5,52 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include "file.h"
+#include "ipc/mutex.h"
+#include "tools/list.h"
 #include <sys/stat.h>
 
+struct _fs_t;
+
+/**
+ * @brief 具体设别的文件操作接口
+ */
+typedef struct _fs_op_t {
+    int (*mount)(struct _fs_t* fs, int major, int minor);
+    void (*unmount)(struct _fs_t* fs);
+    int (*open)(struct _fs_t* fs, const char* path, file_t* file);
+    int (*read)(char* buf, int size, file_t* file);
+    int (*write)(char* buf, int size, file_t* file);
+    void (*close)(file_t* file);
+    int (*seek)(file_t* file, uint32_t offset, int dir);
+    int (*stat)(file_t* file, struct stat* st);
+} fs_op_t;
+
+#define FS_MOUNTP_SIZE 512
+
+/**
+ * @brief 文件系统类型
+ */
+typedef enum _fs_type_t {
+    FS_DEVFS,
+} fs_type_t;
+
+/**
+ * @brief 文件系统
+ */
+typedef struct _fs_t {
+    char mount_point[FS_MOUNTP_SIZE]; // 挂载点路径
+    fs_type_t type; // 文件系统类型
+    fs_op_t* op; // 文件系统操作接口
+    int dev_id; // 所属设备
+    list_node_t node; // 下一个节点
+    mutex_t* mutex; // 文件系统操作互斥信号量
+} fs_t;
+
 void fs_init(void);
+
+int path_to_num(const char* path, int* num);
+const char* path_next_child(const char* path);
 
 int sys_open(const char* name, int flags, ...);
 int sys_read(int file, char* ptr, int len);
