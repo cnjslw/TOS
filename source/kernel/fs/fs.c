@@ -9,6 +9,7 @@
 #include "dev/dev.h"
 #include "dev/disk.h"
 #include "fs/file.h"
+#include "os_cfg.h"
 #include "tools/klib.h"
 #include "tools/log.h"
 #include <sys/file.h>
@@ -19,8 +20,10 @@
 static list_t mounted_list; // 已挂载的文件系统
 static list_t free_list; // 空闲fs列表
 static fs_t fs_tbl[FS_TABLE_SIZE]; // 空闲文件系统列表大小
+static fs_t* root_fs; // 根文件系统
 
 extern fs_op_t devfs_op;
+extern fs_op_t fatfs_op;
 
 #define TEMP_FILE_ID 100
 #define TEMP_ADDR (8 * 1024 * 1024) // 在0x800000处缓存原始
@@ -45,6 +48,8 @@ static int is_fd_bad(int file)
 static fs_op_t* get_fs_op(fs_type_t type, int major)
 {
     switch (type) {
+    case FS_FAT16:
+        return &fatfs_op;
     case FS_DEVFS:
         return &devfs_op;
     default:
@@ -134,6 +139,10 @@ void fs_init(void)
     // 挂载设备文件系统，待后续完成。挂载点名称可随意
     fs_t* fs = mount(FS_DEVFS, "/dev", 0, 0);
     ASSERT(fs != (fs_t*)0);
+
+    // 挂载根文件系统
+    root_fs = mount(FS_FAT16, "/home", ROOT_DEV);
+    ASSERT(root_fs != (fs_t*)0);
 }
 
 /**

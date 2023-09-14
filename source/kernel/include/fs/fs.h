@@ -5,6 +5,7 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include "fatfs/fatfs.h"
 #include "file.h"
 #include "ipc/mutex.h"
 #include "tools/list.h"
@@ -32,6 +33,7 @@ typedef struct _fs_op_t {
  * @brief 文件系统类型
  */
 typedef enum _fs_type_t {
+    FS_FAT16,
     FS_DEVFS,
 } fs_type_t;
 
@@ -39,11 +41,18 @@ typedef enum _fs_type_t {
  * @brief 文件系统
  */
 typedef struct _fs_t {
-    char mount_point[FS_MOUNTP_SIZE]; // 挂载点路径
+    char mount_point[FS_MOUNTP_SIZE]; // 挂载点路径长
     fs_type_t type; // 文件系统类型
+
     fs_op_t* op; // 文件系统操作接口
-    int dev_id; // 所属设备
-    list_node_t node; // 下一个节点
+    void* data; // 文件系统的操作数据
+    int dev_id; // 所属的设备
+
+    list_node_t node; // 下一结点
+
+    union {
+        fat_t fat_data; // 文件系统相关数据
+    };
     mutex_t* mutex; // 文件系统操作互斥信号量
 } fs_t;
 
