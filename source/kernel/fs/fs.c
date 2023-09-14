@@ -7,6 +7,7 @@
 #include "core/task.h"
 #include "dev/console.h"
 #include "dev/dev.h"
+#include "dev/disk.h"
 #include "fs/file.h"
 #include "tools/klib.h"
 #include "tools/log.h"
@@ -158,6 +159,9 @@ void fs_init(void)
 {
     mount_list_init();
     file_table_init();
+
+    // 磁盘初始化
+    disk_init();
 
     // 挂载设备文件系统，待后续完成。挂载点名称可随意
     fs_t* fs = mount(FS_DEVFS, "/dev", 0, 0);
