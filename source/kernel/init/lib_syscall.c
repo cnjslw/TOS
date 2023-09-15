@@ -2,14 +2,13 @@
  * 系统调用接口
  */
 
-#include "lib_syscall.h"
+#include "applib/lib_syscall.h"
 #include "core/syscall.h"
 #include "malloc.h"
 #include "os_cfg.h"
-#include <string.h>
 
 /**
- * 执行系统调用
+ * @brief 执行系统调用
  */
 static inline int sys_call(syscall_args_t* args)
 {
@@ -151,7 +150,7 @@ int lseek(int file, int ptr, int dir)
 }
 
 /**
- * 获取文件的状态
+ * @brief 获取文件的状态
  */
 int fstat(int file, struct stat* st)
 {
@@ -163,7 +162,7 @@ int fstat(int file, struct stat* st)
 }
 
 /**
- * 判断文件描述符与tty关联
+ * @brief 判断文件描述符与tty关联
  */
 int isatty(int file)
 {
@@ -187,48 +186,4 @@ int dup(int file)
     args.id = SYS_dup;
     args.arg0 = file;
     return sys_call(&args);
-}
-
-DIR* opendir(const char* name)
-{
-    DIR* dir = (DIR*)malloc(sizeof(DIR));
-    if (dir == (DIR*)0) {
-        return (DIR*)0;
-    }
-
-    syscall_args_t args;
-    args.id = SYS_opendir;
-    args.arg0 = (int)name;
-    args.arg1 = (int)dir;
-    int err = sys_call(&args);
-    if (err < 0) {
-        free(dir);
-        return (DIR*)0;
-    }
-    return dir;
-}
-
-struct dirent* readdir(DIR* dir)
-{
-
-    syscall_args_t args;
-    args.id = SYS_readdir;
-    args.arg0 = (int)dir;
-    args.arg1 = (int)&dir->dirent;
-    int err = sys_call(&args);
-    if (err < 0) {
-        return (struct dirent*)0;
-    }
-    return &dir->dirent;
-}
-
-int closedir(DIR* dir)
-{
-    syscall_args_t args;
-    args.id = SYS_closedir;
-    args.arg0 = (int)dir;
-    sys_call(&args);
-
-    free(dir);
-    return 0;
 }

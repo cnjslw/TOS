@@ -242,7 +242,7 @@ int sys_open(const char* name, int flags, ...)
     if (fs) {
         name = path_next_child(name);
     } else {
-        // fs = root_fs;
+         fs = root_fs;
     }
 
     file->mode = flags;
@@ -460,5 +460,29 @@ int sys_fstat(int file, struct stat* st)
     fs_protect(fs);
     int err = fs->op->stat(p_file, st);
     fs_unprotect(fs);
+    return err;
+}
+
+int sys_opendir(const char* name, DIR* dir)
+{
+    fs_protect(root_fs);
+    int err = root_fs->op->opendir(root_fs, name, dir);
+    fs_unprotect(root_fs);
+    return err;
+}
+
+int sys_readdir(DIR* dir, struct dirent* dirent)
+{
+    fs_protect(root_fs);
+    int err = root_fs->op->readdir(root_fs, dir, dirent);
+    fs_unprotect(root_fs);
+    return err;
+}
+
+int sys_closedir(DIR* dir)
+{
+    fs_protect(root_fs);
+    int err = root_fs->op->closedir(root_fs, dir);
+    fs_unprotect(root_fs);
     return err;
 }

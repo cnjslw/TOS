@@ -5,8 +5,9 @@
 #ifndef FILE_H
 #define FILE_H
 
-#include "fatfs/fatfs.h"
+#include "applib/lib_syscall.h"
 #include "file.h"
+#include "fs/fatfs/fatfs.h"
 #include "ipc/mutex.h"
 #include "tools/list.h"
 #include <sys/stat.h>
@@ -14,7 +15,7 @@
 struct _fs_t;
 
 /**
- * @brief 具体设别的文件操作接口
+ * @brief 文件系统操作接口
  */
 typedef struct _fs_op_t {
     int (*mount)(struct _fs_t* fs, int major, int minor);
@@ -25,21 +26,20 @@ typedef struct _fs_op_t {
     void (*close)(file_t* file);
     int (*seek)(file_t* file, uint32_t offset, int dir);
     int (*stat)(file_t* file, struct stat* st);
+
+    int (*opendir)(struct _fs_t* fs, const char* name, DIR* dir);
+    int (*readdir)(struct _fs_t* fs, DIR* dir, struct dirent* dirent);
+    int (*closedir)(struct _fs_t* fs, DIR* dir);
 } fs_op_t;
 
 #define FS_MOUNTP_SIZE 512
 
-/**
- * @brief 文件系统类型
- */
+// 文件系统类型
 typedef enum _fs_type_t {
     FS_FAT16,
     FS_DEVFS,
 } fs_type_t;
 
-/**
- * @brief 文件系统
- */
 typedef struct _fs_t {
     char mount_point[FS_MOUNTP_SIZE]; // 挂载点路径长
     fs_type_t type; // 文件系统类型
@@ -50,6 +50,8 @@ typedef struct _fs_t {
 
     list_node_t node; // 下一结点
 
+    // 目前暂时这样设计，可能看起来不好，但是是最简单的方法
+    // 这样就不用考虑内存分配的问题
     union {
         fat_t fat_data; // 文件系统相关数据
     };
@@ -57,7 +59,6 @@ typedef struct _fs_t {
 } fs_t;
 
 void fs_init(void);
-
 int path_to_num(const char* path, int* num);
 const char* path_next_child(const char* path);
 
@@ -71,5 +72,9 @@ int sys_isatty(int file);
 int sys_fstat(int file, struct stat* st);
 
 int sys_dup(int file);
+
+int sys_opendir(const char* name, DIR* dir);
+int sys_readdir(DIR* dir, struct dirent* dirent);
+int sys_closedir(DIR* dir);
 
 #endif // FILE_H

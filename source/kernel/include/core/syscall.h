@@ -25,6 +25,10 @@
 #define SYS_fstat 57
 #define SYS_dup 58
 
+#define SYS_opendir 60
+#define SYS_readdir 61
+#define SYS_closedir 62
+
 #define SYS_printmsg 100
 
 /**
